@@ -113,11 +113,16 @@ def run_shap_lime_analysis():
         idx_wrong = indices_wrong[0]
 
     # Initialize LIME Tabular Explainer
+    import warnings
+    warnings.filterwarnings("ignore", category=UserWarning)
+    warnings.filterwarnings("ignore", category=FutureWarning)
+
     lime_explainer = LimeTabularExplainer(
-        training_data=np.array(X_train),
-        feature_names=X_train.columns,
+        training_data=X_train.values,
+        feature_names=X_train.columns.tolist(),
         class_names=['C', 'CL', 'D'],
-        mode='classification',
+        mode="classification",
+        discretize_continuous=True,
         random_state=42
     )
 
@@ -295,11 +300,16 @@ top_10_importance"""
 
     # LIME Analysis Code
     code_lime = """# LIME Explainer Tanımlama
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 lime_explainer = LimeTabularExplainer(
-    training_data=np.array(X_train),
-    feature_names=X_train.columns,
+    training_data=X_train.values,
+    feature_names=X_train.columns.tolist(),
     class_names=['C', 'CL', 'D'],
-    mode='classification',
+    mode="classification",
+    discretize_continuous=True,
     random_state=42
 )
 
