@@ -129,7 +129,7 @@ def load_csv(filename):
             return None
     return None
 
-# Helper function to display images safely
+# Helper function to display images safely in full container width
 def display_image(path, caption):
     if os.path.exists(path):
         st.image(path, use_container_width=True, caption=caption)
@@ -204,7 +204,7 @@ if page == "10. Canlı Tahmin Paneli":
         }
         df = pd.DataFrame([inputs])
         
-        # One-hot encoding mapping (dropping drop_first=False equivalent logic)
+        # One-hot encoding mapping
         df['Drug_D-penicillamine'] = 1 if Drug == 'D-penicillamine' else 0
         df['Drug_Placebo'] = 1 if Drug == 'Placebo' else 0
         df['Sex_F'] = 1 if Sex == 'F' else 0
@@ -250,31 +250,25 @@ st.markdown("""
 if page == "1. Proje Özeti":
     st.markdown("<div class='section-title'>1. Proje Özeti</div>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("""
-        <div class='clinical-card'>
-            <h3>🎯 Projenin Amacı</h3>
-            <p>Bu proje, Karaciğer Sirozu (özellikle Primer Biliyer Siroz - PBC) hastalarının demografik, klinik semptom ve laboratuvar tahlil bulgularını değerlendirerek, hastaların durumunu tahmin etmeyi amaçlar. Sistem, klinisyenlere tıbbi kararlarında rehberlik edebilecek bir yapay zeka karar destek aracıdır.</p>
-        </div>
-        <div class='clinical-card'>
-            <h3>📂 Veri Seti Açıklaması</h3>
-            <p>Kullanılan veri seti, <b>Mayo Clinic</b> tarafından 1974-1984 yılları arasında gerçekleştirilen primer biliyer siroz klinik denemesine dayanmaktadır. Veri setinde hastaların yaş, cinsiyet gibi demografik bilgilerinin yanında, bilirubin, albümin, kolesterol ve pıhtılaşma süreleri gibi kritik karaciğer rezerv göstergeleri yer almaktadır.</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    with col2:
-        st.markdown("""
-        <div class='clinical-card'>
-            <h3>🏷️ Hedef Değişken: Status</h3>
-            <p>Hastaların klinik takipleri sonucundaki durumunu gösteren <b>Status</b> değişkeni modelimizin tahmin hedefidir:</p>
-            <ul>
-                <li><span class='badge-c'>C</span> <b>Kompanse / Stabil (Sınıf 0):</b> Hasta hayattadır, karaciğer fonksiyonları dengededir. Takip ve konservatif tedavi önerilir.</li>
-                <li><span class='badge-cl'>CL</span> <b>Nakil Gerekli / Yaşıyor (Sınıf 1):</b> Hastaya karaciğer nakli yapılmıştır veya acil nakil adayıdır.</li>
-                <li><span class='badge-d'>D</span> <b>Vefat Riski / Ağır Durum (Sınıf 2):</b> Siroz komplikasyonları nedeniyle vefat durumu gerçekleşmiştir.</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("""
+    <div class='clinical-card'>
+        <h3>🎯 Projenin Amacı</h3>
+        <p>Bu proje, Karaciğer Sirozu (özellikle Primer Biliyer Siroz - PBC) hastalarının demografik, klinik semptom ve laboratuvar tahlil bulgularını değerlendirerek, hastaların durumunu tahmin etmeyi amaçlar. Sistem, klinisyenlere tıbbi kararlarında rehberlik edebilecek bir yapay zeka karar destek aracıdır.</p>
+    </div>
+    <div class='clinical-card'>
+        <h3>📂 Veri Seti Açıklaması</h3>
+        <p>Kullanılan veri seti, <b>Mayo Clinic</b> tarafından 1974-1984 yılları arasında gerçekleştirilen primer biliyer siroz klinik denemesine dayanmaktadır. Veri setinde hastaların yaş, cinsiyet gibi demografik bilgilerinin yanında, bilirubin, albümin, kolesterol ve pıhtılaşma süreleri gibi kritik karaciğer rezerv göstergeleri yer almaktadır.</p>
+    </div>
+    <div class='clinical-card'>
+        <h3>🏷️ Hedef Değişken: Status</h3>
+        <p>Hastaların klinik takipleri sonucundaki durumunu gösteren <b>Status</b> değişkeni modelimizin tahmin hedefidir:</p>
+        <ul>
+            <li><span class='badge-c'>C</span> <b>Kompanse / Stabil (Sınıf 0):</b> Hasta hayattadır, karaciğer fonksiyonları dengededir. Takip ve konservatif tedavi önerilir.</li>
+            <li><span class='badge-cl'>CL</span> <b>Karaciğer Nakli Gerekli / Yaşıyor (Sınıf 1):</b> Hastaya karaciğer nakli yapılmıştır veya acil nakil adayıdır.</li>
+            <li><span class='badge-d'>D</span> <b>Vefat Riski / Ağır Durum (Sınıf 2):</b> Siroz komplikasyonları nedeniyle vefat durumu gerçekleşmiştir.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. EDA BULGULARI
@@ -290,13 +284,13 @@ elif page == "2. EDA Bulguları":
     ])
     
     with tab1:
-        col1, col2 = st.columns(2)
-        with col1:
-            img_target = os.path.join(base_dir, 'reports', 'figures', 'status_distribution.png')
-            display_image(img_target, "Hedef Sınıf (Status) Dağılımı")
-        with col2:
-            img_missing = os.path.join(base_dir, 'reports', 'figures', 'missing_values.png')
-            display_image(img_missing, "Eksik Değer Durumu (Veri Doluluğu)")
+        st.markdown("### Hedef Sınıf (Status) Dağılımı")
+        img_target = os.path.join(base_dir, 'reports', 'figures', 'status_distribution.png')
+        display_image(img_target, "Farklı sınıf frekansları ve yüzdesel durumlar")
+        
+        st.markdown("### Değişkenlerin Veri Doluluk Oranları (%)")
+        img_missing = os.path.join(base_dir, 'reports', 'figures', 'missing_values.png')
+        display_image(img_missing, "Değişken doluluk analizi")
         
         st.markdown("""
         <div class='clinical-card'>
@@ -310,14 +304,14 @@ elif page == "2. EDA Bulguları":
         """, unsafe_allow_html=True)
         
     with tab2:
-        col1, col2 = st.columns(2)
-        with col1:
-            img_dist = os.path.join(base_dir, 'reports', 'figures', 'numerical_histograms.png')
-            display_image(img_dist, "Sayısal Değişkenlerin Dağılım Histrogramları")
-        with col2:
-            img_outliers = os.path.join(base_dir, 'reports', 'figures', 'outlier_analysis.png')
-            display_image(img_outliers, "Kritik Değişkenlerde Aykırı Değer (Outlier) Analizi")
-            
+        st.markdown("### Sayısal Değişkenlerin Dağılım Histrogramları")
+        img_dist = os.path.join(base_dir, 'reports', 'figures', 'numerical_histograms.png')
+        display_image(img_dist, "Sayısal değişkenlerin çarpıklık (Skewness) ve dağılım özellikleri")
+        
+        st.markdown("### Kritik Değişkenlerde Aykırı Değer (Outlier) Analizi")
+        img_outliers = os.path.join(base_dir, 'reports', 'figures', 'outlier_analysis.png')
+        display_image(img_outliers, "Uç klinik değerlerin IQR sınırları bazında analizi")
+        
         st.markdown("""
         <div class='clinical-card'>
             <b>📈 Dağılım ve Aykırı Değer Yorumu:</b><br>
@@ -329,13 +323,13 @@ elif page == "2. EDA Bulguları":
         """, unsafe_allow_html=True)
         
     with tab3:
-        col1, col2 = st.columns(2)
-        with col1:
-            img_corr = os.path.join(base_dir, 'reports', 'figures', 'correlation_heatmap.png')
-            display_image(img_corr, "Sayısal Bulguların Korelasyon Matrisi Heatmap")
-        with col2:
-            img_pairwise = os.path.join(base_dir, 'reports', 'figures', 'pairwise_relationships.png')
-            display_image(img_pairwise, "Status Sınıflarına Göre Kritik Değişkenlerin İkili İlişkileri (Scatter)")
+        st.markdown("### Sayısal Bulguların Korelasyon Matrisi Heatmap")
+        img_corr = os.path.join(base_dir, 'reports', 'figures', 'correlation_heatmap.png')
+        display_image(img_corr, "Tahlil parametrelerinin doğrusal korelasyon ilişkileri")
+        
+        st.markdown("### Status Sınıflarına Göre Kritik Değişkenlerin İkili İlişkileri (Scatter)")
+        img_pairwise = os.path.join(base_dir, 'reports', 'figures', 'pairwise_relationships.png')
+        display_image(img_pairwise, "Sınıf bazlı saçılım dağılımları")
         
         st.markdown("""
         <div class='clinical-card'>
@@ -347,21 +341,21 @@ elif page == "2. EDA Bulguları":
         """, unsafe_allow_html=True)
 
     with tab4:
-        col1, col2 = st.columns(2)
-        with col1:
-            img_age_bins = os.path.join(base_dir, 'reports', 'figures', 'age_bins_status.png')
-            display_image(img_age_bins, "Yaş Gruplarına Göre Status Dağılımı")
-        with col2:
-            img_radar = os.path.join(base_dir, 'reports', 'figures', 'radar_chart_profile.png')
-            display_image(img_radar, "Status Sınıflarına Göre Normalize Edilmiş Hasta Klinik Profilleri")
-            
-        col3, col4 = st.columns(2)
-        with col3:
-            img_boxplot_status = os.path.join(base_dir, 'reports', 'figures', 'boxplots_by_status.png')
-            display_image(img_boxplot_status, "Status Bazında Önemli Değişkenlerin Boxplot Dağılımı")
-        with col4:
-            img_violin = os.path.join(base_dir, 'reports', 'figures', 'bivariate_violin.png')
-            display_image(img_violin, "Status Bazında Değişkenlerin Keman (Violin) Grafikleri")
+        st.markdown("### Yaş Gruplarına Göre Status Dağılımı")
+        img_age_bins = os.path.join(base_dir, 'reports', 'figures', 'age_bins_status.png')
+        display_image(img_age_bins, "Yaş gruplarının siroz hastalık sonuçlarına (Status) etkisi")
+        
+        st.markdown("### Status Sınıflarına Göre Normalize Edilmiş Hasta Klinik Profilleri (Radar)")
+        img_radar = os.path.join(base_dir, 'reports', 'figures', 'radar_chart_profile.png')
+        display_image(img_radar, "Normalize klinik profillerin radar poligonu karşılaştırması")
+        
+        st.markdown("### Status Bazında Önemli Değişkenlerin Boxplot Dağılımı")
+        img_boxplot_status = os.path.join(base_dir, 'reports', 'figures', 'boxplots_by_status.png')
+        display_image(img_boxplot_status, "Kritik tahlillerin hedef sınıflara göre kutu dağılımları")
+        
+        st.markdown("### Status Bazında Değişkenlerin Keman (Violin) Grafikleri")
+        img_violin = os.path.join(base_dir, 'reports', 'figures', 'bivariate_violin.png')
+        display_image(img_violin, "Sayısal laboratuvar bulgularının sınıf bazlı olasılık yoğunluk kemanları")
         
         st.markdown("""
         <div class='clinical-card'>
@@ -380,51 +374,48 @@ elif page == "2. EDA Bulguları":
 elif page == "3. Ön İşleme & Özellik Mühendisliği":
     st.markdown("<div class='section-title'>3. Ön İşleme & Özellik Mühendisliği</div>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns([1, 1.2])
-    with col1:
-        st.markdown("""
-        <div class='clinical-card'>
-            <h3>⚙️ Ön İşleme Adımları</h3>
-            <ul>
-                <li><b>id Sütununun Kaldırılması:</b> Model için bilgi taşımayan ve ezberlemeye sebep olan id sütunu veri setinden atılmıştır.</li>
-                <li><b>Status Kodlama:</b> Hedef sınıf etiketleri tamsayıya kodlanmıştır: <code>C: 0, CL: 1, D: 2</code>.</li>
-                <li><b>One-Hot Encoding:</b> Drug, Sex, Ascites, Hepatomegaly, Spiders, Edema gibi kategorik değişkenler kukla (dummy) değişkenlere dönüştürülmüştür.</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("""
+    <div class='clinical-card'>
+        <h3>⚙️ Ön İşleme Adımları</h3>
+        <ul>
+            <li><b>id Sütununun Kaldırılması:</b> Model için bilgi taşımayan ve ezberlemeye sebep olan id sütunu veri setinden atılmıştır.</li>
+            <li><b>Status Kodlama:</b> Hedef sınıf etiketleri tamsayıya kodlanmıştır: <code>C: 0, CL: 1, D: 2</code>.</li>
+            <li><b>One-Hot Encoding:</b> Drug, Sex, Ascites, Hepatomegaly, Spiders, Edema gibi kategorik değişkenler kukla (dummy) değişkenlere dönüştürülmüştür.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
         
-    with col2:
-        st.markdown("### 🧬 Yeni Klinik Skorlar (Feature Engineering)")
-        
-        st.markdown("**1. ALBI (Albumin-Bilirubin) Skoru:**")
-        st.latex(r"ALBI = 0.66 \times \log_{10}(\text{Bilirubin} \times 17.1) - 0.085 \times (\text{Albumin} \times 10)")
-        st.markdown("""
-        * *Klinik Açıklama:* Karaciğerin sentez kapasitesi (Albumin) ve temizleme gücünü (Bilirubin) birleştiren, literatürde siroz evrelemesinde kullanılan objektif bir skordur.
-        """)
-        
-        st.markdown("**2. APRI (AST to Platelet Ratio Index):**")
-        st.latex(r"APRI = \frac{(\text{SGOT} / 40.0) \times 100}{\text{Platelets}}")
-        st.markdown("""
-        * *Klinik Açıklama:* SGOT (AST) enzim yüksekliği ile trombosit (Platelet) düşüşünü oranlayarak karaciğer fibrozis/siroz skarlaşma derecesini biyopsisiz tahmin etmeye yarar.
-        """)
-        
-        st.markdown("**3. BAR (Bilirubin / Albumin Oranı):**")
-        st.latex(r"BAR = \frac{\text{Bilirubin}}{\text{Albumin}}")
-        st.markdown("""
-        * *Klinik Açıklama:* Karaciğer hasarı (Bilirubin) ve sentez gücü (Albumin) dengesini yansıtan basit ve hassas bir orandır.
-        """)
-        
-        st.markdown("**4. PAI (Protrombin / Albumin Endeksi):**")
-        st.latex(r"PAI = \frac{\text{Prothrombin}}{\text{Albumin}}")
-        st.markdown("""
-        * *Klinik Açıklama:* Pıhtılaşma proteini sentez yeteneği (Protrombin süresi) ile albümin sentez gücünü birleştiren sentez rezerv göstergesidir.
-        """)
-        
-        st.markdown("**5. Alk_Phos / SGOT Oranı:**")
-        st.latex(r"\text{Oran} = \frac{\text{Alk\_Phos}}{\text{SGOT}}")
-        st.markdown("""
-        * *Klinik Açıklama:* Sirozun biliyer/safra kanalı hasarı (Alk_Phos) kökenli mi yoksa aktif hepatosellüler hasar/hücre ölümü (SGOT) kökenli mi olduğunu ayırt eder.
-        """)
+    st.markdown("### 🧬 Yeni Klinik Skorlar (Feature Engineering)")
+    
+    st.markdown("**1. ALBI (Albumin-Bilirubin) Skoru:**")
+    st.latex(r"ALBI = 0.66 \times \log_{10}(\text{Bilirubin} \times 17.1) - 0.085 \times (\text{Albumin} \times 10)")
+    st.markdown("""
+    * *Klinik Açıklama:* Karaciğerin sentez kapasitesi (Albumin) ve temizleme gücünü (Bilirubin) birleştiren, literatürde siroz evrelemesinde kullanılan objektif bir skordur.
+    """)
+    
+    st.markdown("**2. APRI (AST to Platelet Ratio Index):**")
+    st.latex(r"APRI = \frac{(\text{SGOT} / 40.0) \times 100}{\text{Platelets}}")
+    st.markdown("""
+    * *Klinik Açıklama:* SGOT (AST) enzim yüksekliği ile trombosit (Platelet) düşüşünü oranlayarak karaciğer fibrozis/siroz skarlaşma derecesini biyopsisiz tahmin etmeye yarar.
+    """)
+    
+    st.markdown("**3. BAR (Bilirubin / Albumin Oranı):**")
+    st.latex(r"BAR = \frac{\text{Bilirubin}}{\text{Albumin}}")
+    st.markdown("""
+    * *Klinik Açıklama:* Karaciğer hasarı (Bilirubin) ve sentez gücü (Albumin) dengesini yansıtan basit ve hassas bir orandır.
+    """)
+    
+    st.markdown("**4. PAI (Protrombin / Albumin Endeksi):**")
+    st.latex(r"PAI = \frac{\text{Prothrombin}}{\text{Albumin}}")
+    st.markdown("""
+    * *Klinik Açıklama:* Pıhtılaşma proteini sentez yeteneği (Protrombin süresi) ile albümin sentez gücünü birleştiren sentez rezerv göstergesidir.
+    """)
+    
+    st.markdown("**5. Alk_Phos / SGOT Oranı:**")
+    st.latex(r"\text{Oran} = \frac{\text{Alk\_Phos}}{\text{SGOT}}")
+    st.markdown("""
+    * *Klinik Açıklama:* Sirozun biliyer/safra kanalı hasarı (Alk_Phos) kökenli mi yoksa aktif hepatosellüler hasar/hücre ölümü (SGOT) kökenli mi olduğunu ayırt eder.
+    """)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. MODEL KARŞILAŞTIRMA
@@ -432,51 +423,52 @@ elif page == "3. Ön İşleme & Özellik Mühendisliği":
 elif page == "4. Model Karşılaştırma":
     st.markdown("<div class='section-title'>4. Model Karşılaştırma ve LightGBM Seçimi</div>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns([1, 1.2])
-    with col1:
-        st.markdown("#### LazyPredict Sonuçları (İlk 10 Model)")
-        lp_df = load_csv('lazypredict_results.csv')
-        if lp_df is not None:
-            st.dataframe(lp_df.head(10), use_container_width=True)
-        else:
-            st.warning("LazyPredict sonuç tablosu bulunamadı.")
-            
-        st.markdown("""
-        <div class='clinical-card'>
-            <h3>🏥 En İyi 3 Model Karşılaştırması</h3>
-            <table style='width:100%; border-collapse: collapse;'>
-                <tr style='background-color:#f8f9fa;'>
-                    <th style='padding:8px; border:1px solid #ddd;'>Model</th>
-                    <th style='padding:8px; border:1px solid #ddd;'>Genel Doğruluk</th>
-                    <th style='padding:8px; border:1px solid #ddd;'>Macro F1</th>
-                </tr>
-                <tr>
-                    <td style='padding:8px; border:1px solid #ddd;'><b>LightGBM Classifier</b></td>
-                    <td style='padding:8px; border:1px solid #ddd;'>0.8286</td>
-                    <td style='padding:8px; border:1px solid #ddd;'><b>0.6378</b></td>
-                </tr>
-                <tr>
-                    <td style='padding:8px; border:1px solid #ddd;'>RandomForest Classifier</td>
-                    <td style='padding:8px; border:1px solid #ddd;'>0.8185</td>
-                    <td style='padding:8px; border:1px solid #ddd;'>0.5660</td>
-                </tr>
-                <tr>
-                    <td style='padding:8px; border:1px solid #ddd;'>Bagging Classifier</td>
-                    <td style='padding:8px; border:1px solid #ddd;'>0.7951</td>
-                    <td style='padding:8px; border:1px solid #ddd;'>0.5562</td>
-                </tr>
-            </table>
-        </div>
-        <div class='clinical-card'>
-            <b>Neden LightGBM?</b><br>
-            LightGBM, LazyPredict taramasında en yüksek Macro F1 değerini vermiştir. 
-            Ayrıca yüksek eğitim hızı, sınıf ağırlıklandırma parametresi (<code>class_weight</code>) desteği ve ağaç tabanlı yapı sayesinde klinik verilerdeki çarpıklıklara karşı kararlı duruşu nedeniyle tercih edilmiştir.
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("#### LazyPredict Sonuçları (İlk 10 Model)")
+    lp_df = load_csv('lazypredict_results.csv')
+    if lp_df is not None:
+        st.dataframe(lp_df.head(10), use_container_width=True)
+    else:
+        st.warning("LazyPredict sonuç tablosu bulunamadı.")
         
-    with col2:
-        img_comp = os.path.join(base_dir, 'outputs', 'model_comparison.png')
-        display_image(img_comp, "LazyPredict Algoritmaları Karşılaştırma Grafiği")
+    st.markdown("""
+    <div class='clinical-card'>
+        <h3>🏥 En İyi 3 Model Karşılaştırması</h3>
+        <table style='width:100%; border-collapse: collapse;'>
+            <tr style='background-color:#f8f9fa;'>
+                <th style='padding:8px; border:1px solid #ddd;'>Model</th>
+                <th style='padding:8px; border:1px solid #ddd;'>Genel Doğruluk</th>
+                <th style='padding:8px; border:1px solid #ddd;'>Macro F1</th>
+            </tr>
+            <tr>
+                <td style='padding:8px; border:1px solid #ddd;'><b>LightGBM Classifier</b></td>
+                <td style='padding:8px; border:1px solid #ddd;'>0.8286</td>
+                <td style='padding:8px; border:1px solid #ddd;'><b>0.6378</b></td>
+            </tr>
+            <tr>
+                <td style='padding:8px; border:1px solid #ddd;'>RandomForest Classifier</td>
+                <td style='padding:8px; border:1px solid #ddd;'>0.8185</td>
+                <td style='padding:8px; border:1px solid #ddd;'>0.5660</td>
+            </tr>
+            <tr>
+                <td style='padding:8px; border:1px solid #ddd;'>Bagging Classifier</td>
+                <td style='padding:8px; border:1px solid #ddd;'>0.7951</td>
+                <td style='padding:8px; border:1px solid #ddd;'>0.5562</td>
+            </tr>
+        </table>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("#### LazyPredict Algoritmaları Karşılaştırma Grafiği")
+    img_comp = os.path.join(base_dir, 'outputs', 'model_comparison.png')
+    display_image(img_comp, "Modellerin doğruluk ve F1 katsayılarının görsel karşılaştırması")
+    
+    st.markdown("""
+    <div class='clinical-card'>
+        <b>Neden LightGBM?</b><br>
+        LightGBM, LazyPredict taramasında en yüksek Macro F1 değerini vermiştir. 
+        Ayrıca yüksek eğitim hızı, sınıf ağırlıklandırma parametresi (<code>class_weight</code>) desteği ve ağaç tabanlı yapı sayesinde klinik verilerdeki çarpıklıklara karşı kararlı duruşu nedeniyle tercih edilmiştir.
+    </div>
+    """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 5. SINIF AĞIRLIKLANDIRMA DENEYLERİ
@@ -484,34 +476,32 @@ elif page == "4. Model Karşılaştırma":
 elif page == "5. Sınıf Ağırlıklandırma Deneyleri":
     st.markdown("<div class='section-title'>5. Sınıf Ağırlıklandırma (Class Weight) ve CL Sınıfı Analizi</div>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns([1, 1.2])
-    with col1:
-        st.markdown("#### Varsayılan LightGBM vs Dengeli (Balanced) LightGBM")
-        lgbm_cw_df = load_csv('lgbm_class_weight_results.csv')
-        if lgbm_cw_df is not None:
-            st.dataframe(lgbm_cw_df, use_container_width=True)
-        else:
-            st.warning("Varsayılan vs Balanced LightGBM sonuç tablosu bulunamadı.")
-            
-        st.markdown("#### Farklı Class Weight Kombinasyonlarının Deney Sonuçları")
-        cw_df = load_csv('class_weight_experiment.csv')
-        if cw_df is not None:
-            st.dataframe(cw_df, use_container_width=True)
-        else:
-            st.warning("Manuel class weight deney sonuç tablosu bulunamadı.")
-            
-        st.markdown("""
-        <div class='clinical-card'>
-            <b>⚖️ CL Sınıfı Recall / F1 Yorumu:</b><br>
-            Varsayılan modelde CL recall değeri %14.54 seviyesindeyken, sınıf dengesizliğini gidermek için <code>class_weight='balanced'</code> parametresi kullanıldığında bu oran <b>%27.27</b>'ye yükselmiştir.<br>
-            <code>balanced</code> ayarı, CL sınıfı için otomatik olarak yaklaşık <b>18 kat</b> daha yüksek ağırlık tanımlayarak modelin bu azınlık sınıfı örneklerini kaçırmamasını sağlar. 
-            Manuel ağırlıklarda (1:10:1 veya 1:15:1) precision hafifçe artsa da, klinik hedefin \"nakil ihtiyacı olan hastaları gözden kaçırmamak\" olması nedeniyle, en yüksek CL Recall veren <b>balanced LightGBM</b> modeli final adayı olarak seçilmiştir.
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("#### Varsayılan LightGBM vs Dengeli (Balanced) LightGBM")
+    lgbm_cw_df = load_csv('lgbm_class_weight_results.csv')
+    if lgbm_cw_df is not None:
+        st.dataframe(lgbm_cw_df, use_container_width=True)
+    else:
+        st.warning("Varsayılan vs Balanced LightGBM sonuç tablosu bulunamadı.")
         
-    with col2:
-        img_cw = os.path.join(base_dir, 'outputs', 'class_weight_comparison.png')
-        display_image(img_cw, "Sınıf Ağırlıklandırma Metotları Hata Matrisi (Confusion Matrix) Karşılaştırması")
+    st.markdown("#### Farklı Class Weight Kombinasyonlarının Deney Sonuçları")
+    cw_df = load_csv('class_weight_experiment.csv')
+    if cw_df is not None:
+        st.dataframe(cw_df, use_container_width=True)
+    else:
+        st.warning("Manuel class weight deney sonuç tablosu bulunamadı.")
+        
+    st.markdown("#### Sınıf Ağırlıklandırma Metotları Hata Matrisi (Confusion Matrix) Karşılaştırması")
+    img_cw = os.path.join(base_dir, 'outputs', 'class_weight_comparison.png')
+    display_image(img_cw, "Farklı class_weight stratejilerinin CL sınıfı üzerindeki etkileri")
+    
+    st.markdown("""
+    <div class='clinical-card'>
+        <b>⚖️ CL Sınıfı Recall / F1 Yorumu:</b><br>
+        Varsayılan modelde CL recall değeri %14.54 seviyesindeyken, sınıf dengesizliğini gidermek için <code>class_weight='balanced'</code> parametresi kullanıldığında bu oran <b>%27.27</b>'ye yükselmiştir.<br>
+        <code>balanced</code> ayarı, CL sınıfı için otomatik olarak yaklaşık <b>18 kat</b> daha yüksek ağırlık tanımlayarak modelin bu azınlık sınıfı örneklerini kaçırmamasını sağlar. 
+        Manuel ağırlıklarda (1:10:1 veya 1:15:1) precision hafifçe artsa da, klinik hedefin \"nakil ihtiyacı olan hastaları gözden kaçırmamak\" olması nedeniyle, en yüksek CL Recall veren <b>balanced LightGBM</b> modeli final adayı olarak seçilmiştir.
+    </div>
+    """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 6. HİPERPARAMETRE OPTİMİZASYONU
@@ -519,36 +509,32 @@ elif page == "5. Sınıf Ağırlıklandırma Deneyleri":
 elif page == "6. Hiperparametre Optimizasyonu":
     st.markdown("<div class='section-title'>6. Hiperparametre Optimizasyonu</div>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns([1.2, 1])
-    with col1:
-        st.markdown("""
-        <div class='clinical-card'>
-            <h3>⚙️ Optimizasyon Metodolojisi</h3>
-            <p><b>RandomizedSearchCV:</b> Hiperparametre uzayından rassal kombinasyonlar seçerek 50 iterasyon boyunca en iyi çapraz doğrulama Macro F1 skoruna sahip hiperparametreleri aramıştır.</p>
-            <p><b>StratifiedKFold (5-Fold):</b> Sınıf dengesizliği yüksek olduğu için fold bölmelerinde orijinal sınıf dağılımı korunmuş, modelin doğrulamada adil değerlendirilmesi sağlanmıştır.</p>
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("""
+    <div class='clinical-card'>
+        <h3>⚙️ Optimizasyon Metodolojisi</h3>
+        <p><b>RandomizedSearchCV:</b> Hiperparametre uzayından rassal kombinasyonlar seçerek 50 iterasyon boyunca en iyi çapraz doğrulama Macro F1 skoruna sahip hiperparametreleri aramıştır.</p>
+        <p><b>StratifiedKFold (5-Fold):</b> Sınıf dengesizliği yüksek olduğu için fold bölmelerinde orijinal sınıf dağılımı korunmuş, modelin doğrulamada adil değerlendirilmesi sağlanmıştır.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    hp_df = load_csv('hyperparameter_results.csv')
+    if hp_df is not None:
+        st.markdown("#### Hiperparametre Arama Sonuç Özeti")
+        st.dataframe(hp_df, use_container_width=True)
         
-        hp_df = load_csv('hyperparameter_results.csv')
-        if hp_df is not None:
-            st.markdown("#### Hiperparametre Arama Sonuç Özeti")
-            st.write(hp_df)
-        else:
-            st.warning("Hiperparametre sonuç tablosu bulunamadı.")
-            
-    with col2:
-        if hp_df is not None:
-            best_params = hp_df.iloc[0]['Best Parameters']
-            st.markdown("#### 🎯 En İyi Hiperparametreler")
-            st.code(best_params, language='json')
-            
-            st.markdown("""
-            <div class='clinical-card'>
-                <b>Optimizasyon Yorumu:</b><br>
-                Modelin karmaşıklığını ve ezberlemesini sınırlamak için <code>max_depth=5</code> ve yüksek <code>reg_alpha=5.0</code> değerleri seçilmiştir. 
-                Bu durum eğitim setinde aşırı öğrenmeyi (overfitting) engellerken, test seti F1 skorunu kararlı hale getirmiştir.
-            </div>
-            """, unsafe_allow_html=True)
+        best_params = hp_df.iloc[0]['Best Parameters']
+        st.markdown("#### 🎯 En İyi Hiperparametreler")
+        st.code(best_params, language='json')
+    else:
+        st.warning("Hiperparametre sonuç tablosu bulunamadı.")
+        
+    st.markdown("""
+    <div class='clinical-card'>
+        <b>Optimizasyon Yorumu:</b><br>
+        Modelin karmaşıklığını ve ezberlemesini sınırlamak için <code>max_depth=5</code> ve yüksek <code>reg_alpha=5.0</code> değerleri seçilmiştir. 
+        Bu durum eğitim setinde aşırı öğrenmeyi (overfitting) engellerken, test seti F1 skorunu kararlı hale getirmiştir.
+    </div>
+    """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 7. MODEL DOĞRULAMA (CROSS-VALIDATION)
@@ -556,37 +542,35 @@ elif page == "6. Hiperparametre Optimizasyonu":
 elif page == "7. Model Doğrulama (Cross-Validation)":
     st.markdown("<div class='section-title'>7. Model Doğrulama & Öğrenme Eğrisi</div>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns([1.2, 1])
-    with col1:
-        st.markdown("#### 5-Fold Cross-Validation Sonuç Tablosu")
-        cv_df = load_csv('cross_validation_results.csv')
-        if cv_df is not None:
-            st.dataframe(cv_df, use_container_width=True)
-            
-            # Extract Mean metrics
-            mean_row = cv_df[cv_df['Fold'] == 'Mean']
-            if not mean_row.empty:
-                st.markdown("#### 📊 Ortalama Doğrulama Metrikleri (Mean ± Std)")
-                col_m1, col_m2 = st.columns(2)
-                with col_m1:
-                    st.metric("Val Accuracy", "81.62% ± 0.45%")
-                with col_m2:
-                    st.metric("Val Macro F1", "66.57% ± 1.59%")
-        else:
-            st.warning("Cross validation sonuç tablosu bulunamadı.")
-            
-        st.markdown("""
-        <div class='clinical-card'>
-            <b>📈 Overfitting (Aşırı Öğrenme) ve Öğrenme Eğrisi Analizi:</b><br>
-            Eğitim F1 skoru (%91.33) ile doğrulama F1 skoru (%66.57) arasında bir fark (gap) bulunsa da, fold'lar arasındaki standart sapmanın son derece düşük olması (%1.59) modelin kararlılığını gösterir.<br>
-            Learning Curve grafiği incelendiğinde, veri boyutu arttıkça doğrulama F1 skorunun yukarı doğru ivmelendiği ve eğitim skorunun dengelenmeye başladığı görülmektedir. 
-            Bu durum, veri boyutunun artırılmasının modelin genel performansını daha da iyileştireceğine işaret eder.
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("#### 5-Fold Cross-Validation Sonuç Tablosu")
+    cv_df = load_csv('cross_validation_results.csv')
+    if cv_df is not None:
+        st.dataframe(cv_df, use_container_width=True)
         
-    with col2:
-        img_lc = os.path.join(base_dir, 'outputs', 'learning_curve.png')
-        display_image(img_lc, "Model Öğrenme Eğrisi (Learning Curve)")
+        # Display Mean metrics in KPI columns
+        mean_row = cv_df[cv_df['Fold'] == 'Mean']
+        if not mean_row.empty:
+            st.markdown("#### 📊 Ortalama Doğrulama Metrikleri (Mean ± Std)")
+            col_m1, col_m2 = st.columns(2)
+            with col_m1:
+                st.metric("Val Accuracy", "81.62% ± 0.45%")
+            with col_m2:
+                st.metric("Val Macro F1", "66.57% ± 1.59%")
+    else:
+        st.warning("Cross validation sonuç tablosu bulunamadı.")
+        
+    st.markdown("#### Model Öğrenme Eğrisi (Learning Curve)")
+    img_lc = os.path.join(base_dir, 'outputs', 'learning_curve.png')
+    display_image(img_lc, "Modelin eğitim seti büyüklüğüne göre Macro F1 değişim grafiği")
+    
+    st.markdown("""
+    <div class='clinical-card'>
+        <b>📈 Overfitting (Aşırı Öğrenme) ve Öğrenme Eğrisi Analizi:</b><br>
+        Eğitim F1 skoru (%91.33) ile doğrulama F1 skoru (%66.57) arasında bir fark (gap) bulunsa da, fold'lar arasındaki standart sapmanın son derece düşük olması (%1.59) modelin kararlılığını gösterir.<br>
+        Learning Curve grafiği incelendiğinde, veri boyutu arttıkça doğrulama F1 skorunun yukarı doğru ivmelendiği ve eğitim skorunun dengelenmeye başladığı görülmektedir. 
+        Bu durum, veri boyutunun artırılmasının modelin genel performansını daha da iyileştireceğine işaret eder.
+    </div>
+    """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 8. ROC CURVE ANALİZİ
@@ -594,31 +578,40 @@ elif page == "7. Model Doğrulama (Cross-Validation)":
 elif page == "8. ROC Curve Analizi":
     st.markdown("<div class='section-title'>8. Sınıf Ayrıştırma Yeteneği (ROC Curve)</div>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
-    with col1:
-        img_roc = os.path.join(base_dir, 'outputs', 'roc_curve_ovr.png')
-        display_image(img_roc, "One-vs-Rest (OvR) ROC Eğrisi")
-        
-    with col2:
-        st.markdown("#### Sınıf Bazlı Alan Değerleri (AUC)")
-        roc_df = load_csv('roc_results.csv')
-        if roc_df is not None:
-            st.table(roc_df)
-        else:
-            st.warning("ROC sonuç tablosu bulunamadı.")
+    st.markdown("#### Sınıf Bazlı Alan Değerleri (AUC)")
+    roc_df = load_csv('roc_results.csv')
+    if roc_df is not None:
+        # Display ROC AUC metrics in columns
+        col_r1, col_r2, col_r3, col_r4 = st.columns(4)
+        with col_r1:
+            st.metric("C (Stabil) AUC", "0.9010")
+        with col_r2:
+            st.metric("CL (Nakil) AUC", "0.7908")
+        with col_r3:
+            st.metric("D (Vefat) AUC", "0.9047")
+        with col_r4:
+            st.metric("Macro Average AUC", "0.8655")
             
-        st.markdown("""
-        <div class='clinical-card'>
-            <b>📊 ROC & AUC Yorumu:</b><br>
-            Modelin genel <b>Macro Average AUC skoru 0.8655</b>'tir. Sınıf bazında incelendiğinde:
-            <ul>
-                <li><b>C (Stabil):</b> AUC = <b>0.9010</b> (Çok yüksek ayrıştırma gücü)</li>
-                <li><b>D (Vefat):</b> AUC = <b>0.9047</b> (Çok yüksek ayrıştırma gücü)</li>
-                <li><b>CL (Nakil):</b> AUC = <b>0.7908</b> (Düşük veri adedine rağmen başarılı ayrıştırma)</li>
-            </ul>
-            AUC değerlerinin 0.80-0.90 bandı ve üzerinde olması, karar destek sisteminin olasılık eşiklerinin ayrıştırma kalitesinin mükemmel olduğunu tesciller.
-        </div>
-        """, unsafe_allow_html=True)
+        st.dataframe(roc_df, use_container_width=True)
+    else:
+        st.warning("ROC sonuç tablosu bulunamadı.")
+        
+    st.markdown("#### One-vs-Rest (OvR) ROC Eğrisi")
+    img_roc = os.path.join(base_dir, 'outputs', 'roc_curve_ovr.png')
+    display_image(img_roc, "One-vs-Rest (OvR) ROC Eğrisi")
+    
+    st.markdown("""
+    <div class='clinical-card'>
+        <b>📊 ROC & AUC Yorumu:</b><br>
+        Modelin genel <b>Macro Average AUC skoru 0.8655</b>'tir. Sınıf bazında incelendiğinde:
+        <ul>
+            <li><b>C (Stabil):</b> AUC = <b>0.9010</b> (Çok yüksek ayrıştırma gücü)</li>
+            <li><b>D (Vefat):</b> AUC = <b>0.9047</b> (Çok yüksek ayrıştırma gücü)</li>
+            <li><b>CL (Nakil):</b> AUC = <b>0.7908</b> (Düşük veri adedine rağmen başarılı ayrıştırma)</li>
+        </ul>
+        AUC değerlerinin 0.80-0.90 bandı ve üzerinde olması, karar destek sisteminin olasılık eşiklerinin ayrıştırma kalitesinin mükemmel olduğunu tesciller.
+    </div>
+    """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 9. SHAP & LIME AÇIKLANABİLİRLİK
@@ -637,18 +630,18 @@ elif page == "9. SHAP & LIME Açıklanabilirlik":
     tab1, tab2 = st.tabs(["🌎 SHAP Global Analizi", "📍 LIME Yerel Hasta Örnekleri"])
     
     with tab1:
-        col1, col2 = st.columns([1, 1.2])
-        with col1:
-            st.markdown("#### SHAP En Önemli Değişkenler Tablosu")
-            shap_df = load_csv('shap_importance.csv')
-            if shap_df is not None:
-                st.dataframe(shap_df.head(10).round(4), use_container_width=True)
-            else:
-                st.warning("SHAP önem tablosu bulunamadı.")
-        with col2:
-            img_shap_bar = os.path.join(base_dir, 'outputs', 'shap_bar.png')
-            display_image(img_shap_bar, "Ortalama Mutlak SHAP Değerleri")
+        st.markdown("#### SHAP En Önemli Değişkenler Tablosu")
+        shap_df = load_csv('shap_importance.csv')
+        if shap_df is not None:
+            st.dataframe(shap_df.head(10).round(4), use_container_width=True)
+        else:
+            st.warning("SHAP önem tablosu bulunamadı.")
             
+        st.markdown("#### Ortala Mutlak SHAP Değerleri (Global Feature Importance Bar)")
+        img_shap_bar = os.path.join(base_dir, 'outputs', 'shap_bar.png')
+        display_image(img_shap_bar, "Model genelinde her durum sınıfı için en önemli özelliklerin ortalama etkileri")
+        
+        st.markdown("#### SHAP Summary Plot (Sınıf Bazlı Özellik Etkileri)")
         img_shap_sum = os.path.join(base_dir, 'outputs', 'shap_summary.png')
         display_image(img_shap_sum, "SHAP Summary Plot")
         
@@ -662,12 +655,12 @@ elif page == "9. SHAP & LIME Açıklanabilirlik":
         """, unsafe_allow_html=True)
         
     with tab2:
-        col1, col2 = st.columns(2)
-        with col1:
-            display_image(lime_correct_path, "Modelin Doğru Tahmin Ettiği Hasta (LIME)")
-        with col2:
-            display_image(lime_wrong_path, "Modelin Yanlış Tahmin Ettiği Hasta (LIME)")
-            
+        st.markdown("#### Modelin Doğru Tahmin Ettiği Hasta (LIME)")
+        display_image(lime_correct_path, "LIME Doğru Tahmin Detayı")
+        
+        st.markdown("#### Modelin Yanlış Tahmin Ettiği Hasta (LIME)")
+        display_image(lime_wrong_path, "LIME Yanlış Tahmin Detayı")
+        
         st.markdown("""
         <div class='clinical-card'>
             <b>📍 LIME Grafikleri Analizi:</b><br>
@@ -700,42 +693,37 @@ elif page == "10. Canlı Tahmin Paneli":
         predicted_label = class_labels[pred_class_idx]
         predicted_name_tr = class_names_tr[predicted_label]
         
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            st.markdown("#### 🎯 Tahmin Çıktısı")
-            if predicted_label == 'C':
-                st.markdown(f"<div class='status-card-c'>Durum: {predicted_name_tr}<br>Güven Skoru (Olasılık): %{confidence*100:.2f}</div>", unsafe_allow_html=True)
-                st.markdown("💡 **Klinik Değerlendirme Önerisi:** Hastanın karaciğer sentez ve temizleme kapasitesi büyük oranda korunmuştur. Hekim kontrolünde rutin poliklinik takibi ve konservatif tedavi sürdürülebilir.")
-            elif predicted_label == 'CL':
-                st.markdown(f"<div class='status-card-cl'>Durum: {predicted_name_tr}<br>Güven Skoru (Olasılık): %{confidence*100:.2f}</div>", unsafe_allow_html=True)
-                st.markdown("⚠️ **Klinik Değerlendirme Önerisi:** Karaciğer rezervlerinde ciddi azalma ve nakil ihtiyacı belirtileri mevcuttur. Hastanın acilen organ nakli (transplantasyon) kurullarınca değerlendirilmesi önerilir.")
-            else:
-                st.markdown(f"<div class='status-card-d'>Durum: {predicted_name_tr}<br>Güven Skoru (Olasılık): %{confidence*100:.2f}</div>", unsafe_allow_html=True)
-                st.markdown("🚨 **Klinik Değerlendirme Önerisi:** Siroza bağlı mortalite/vefat riski yüksektir. Hastanın yatırılarak takip edilmesi ve siroz komplikasyonlarına (özefagus varis kanaması, hepatik ensefalopati, asit peritoniti vb.) yönelik acil tedavilerin planlanması gerekebilir.")
-                
-        with col2:
-            st.markdown("#### 📊 Sınıf Olasılıkları Dağılımı")
-            proba_df = pd.DataFrame({
-                'Sınıf': ['Stabil (C)', 'Nakil Adayı (CL)', 'Ağır Durum (D)'],
-                'Olasılık (%)': proba * 100
-            })
+        st.markdown("#### 🎯 Tahmin Çıktısı")
+        if predicted_label == 'C':
+            st.markdown(f"<div class='status-card-c'>Durum: {predicted_name_tr}<br>Güven Skoru (Olasılık): %{confidence*100:.2f}</div>", unsafe_allow_html=True)
+            st.markdown("💡 **Klinik Değerlendirme Önerisi:** Hastanın karaciğer sentez ve temizleme kapasitesi büyük oranda korunmuştur. Hekim kontrolünde rutin poliklinik takibi ve konservatif tedavi sürdürülebilir.")
+        elif predicted_label == 'CL':
+            st.markdown(f"<div class='status-card-cl'>Durum: {predicted_name_tr}<br>Güven Skoru (Olasılık): %{confidence*100:.2f}</div>", unsafe_allow_html=True)
+            st.markdown("⚠️ **Klinik Değerlendirme Önerisi:** Karaciğer rezervlerinde ciddi azalma ve nakil ihtiyacı belirtileri mevcuttur. Hastanın acilen organ nakli (transplantasyon) kurullarınca değerlendirilmesi önerilir.")
+        else:
+            st.markdown(f"<div class='status-card-d'>Durum: {predicted_name_tr}<br>Güven Skoru (Olasılık): %{confidence*100:.2f}</div>", unsafe_allow_html=True)
+            st.markdown("🚨 **Klinik Değerlendirme Önerisi:** Siroza bağlı mortalite/vefat riski yüksektir. Hastanın yatırılarak takip edilmesi ve siroz komplikasyonlarına (özefagus varis kanaması, hepatik ensefalopati, asit peritoniti vb.) yönelik acil tedavilerin planlanması gerekebilir.")
             
-            fig, ax = plt.subplots(figsize=(6, 3.8))
-            colors = [
-                '#2e7d32' if predicted_label == 'C' else '#a5d6a7',
-                '#f57f17' if predicted_label == 'CL' else '#fff59d',
-                '#c62828' if predicted_label == 'D' else '#ef9a9a'
-            ]
+        st.markdown("#### 📊 Sınıf Olasılıkları Dağılımı")
+        fig, ax = plt.subplots(figsize=(12, 3))
+        proba_df = pd.DataFrame({
+            'Sınıf': ['Stabil (C)', 'Nakil Adayı (CL)', 'Ağır Durum (D)'],
+            'Olasılık (%)': proba * 100
+        })
+        colors = [
+            '#2e7d32' if predicted_label == 'C' else '#a5d6a7',
+            '#f57f17' if predicted_label == 'CL' else '#fff59d',
+            '#c62828' if predicted_label == 'D' else '#ef9a9a'
+        ]
+        sns.barplot(x='Olasılık (%)', y='Sınıf', data=proba_df, palette=colors, ax=ax)
+        ax.set_xlim(0, 100)
+        ax.set_title("Durum Olasılık Yüzdeleri", fontweight='bold', fontsize=12, color='#1e3d59')
+        for index, value in enumerate(proba_df['Olasılık (%)']):
+            ax.text(value + 1, index, f"%{value:.1f}", va='center', fontweight='bold', fontsize=10)
+        st.pyplot(fig)
+        plt.close()
             
-            sns.barplot(x='Olasılık (%)', y='Sınıf', data=proba_df, palette=colors, ax=ax)
-            ax.set_xlim(0, 100)
-            ax.set_title("Durum Olasılık Yüzdeleri", fontweight='bold', fontsize=12, color='#1e3d59')
-            for index, value in enumerate(proba_df['Olasılık (%)']):
-                ax.text(value + 1, index, f"%{value:.1f}", va='center', fontweight='bold', fontsize=10)
-            st.pyplot(fig)
-            plt.close()
-            
-        # Display Calculated Clinical Scores
+        # Display Calculated Clinical Scores (Small metrics are allowed to remain in columns)
         st.markdown("<div class='section-title'>Hesaplanan Klinik Skorlar</div>", unsafe_allow_html=True)
         col_s1, col_s2, col_s3, col_s4, col_s5 = st.columns(5)
         
@@ -759,7 +747,7 @@ elif page == "10. Canlı Tahmin Paneli":
             st.caption("Hasar/Sentez Oranı")
         with col_s4:
             st.metric("PAI (Protrombin/Albumin)", f"{processed_df['PAI'].values[0]:.3f}")
-            st.caption("Sentez Kapasitesi")
+            st.caption("Sentez Sentezi")
         with col_s5:
             st.metric("Alk_Phos / SGOT Oranı", f"{processed_df['Alk_Phos_SGOT_Ratio'].values[0]:.3f}")
             st.caption("Hasar Kökeni Göstergesi")
