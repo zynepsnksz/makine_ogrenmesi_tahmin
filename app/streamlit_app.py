@@ -282,58 +282,95 @@ if page == "1. Proje Özeti":
 elif page == "2. EDA Bulguları":
     st.markdown("<div class='section-title'>2. Keşifçi Veri Analizi (EDA) Bulguları</div>", unsafe_allow_html=True)
     
-    tab1, tab2, tab3 = st.tabs([
-        "📊 Sınıf Dağılımı & Eksik Değer Durumu", 
-        "📈 Sayısal Değişken Dağılımları & Aykırı Değerler", 
-        "🔗 Korelasyon Heatmap"
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📊 Sınıf Dağılımı & Eksik Değer Analizi", 
+        "📈 Sayısal Dağılımlar & Aykırı Değerler", 
+        "🔗 Korelasyon & İkili İlişkiler",
+        "🎯 Sınıflara Göre Dağılımlar & Klinik Profiller"
     ])
     
     with tab1:
         col1, col2 = st.columns(2)
         with col1:
-            img_target = os.path.join(base_dir, 'reports', 'figures', 'target_distribution.png')
-            display_image(img_target, "Sınıf Dağılımı")
+            img_target = os.path.join(base_dir, 'reports', 'figures', 'status_distribution.png')
+            display_image(img_target, "Hedef Sınıf (Status) Dağılımı")
         with col2:
             img_missing = os.path.join(base_dir, 'reports', 'figures', 'missing_values.png')
-            display_image(img_missing, "Eksik Değer Durumu")
+            display_image(img_missing, "Eksik Değer Durumu (Veri Doluluğu)")
         
         st.markdown("""
         <div class='clinical-card'>
-            <b>📊 Sınıf Dağılımı Yorumu:</b><br>
+            <b>📊 Sınıf Dağılımı ve Doluluk Yorumu:</b><br>
             Veri setinde sınıflar arasında ciddi bir dengesizlik (imbalance) vardır. 
-            Transplant yapılan hastaları temsil eden <b>CL</b> sınıfı toplam verinin %3'ünden daha azını oluşturmaktadır. 
+            Transplant yapılan hastaları temsil eden <b>CL</b> sınıfı toplam verinin %3.5'ini oluşturmaktadır. 
             Bu durum, makine öğrenmesi algoritmalarının CL sınıfını öğrenmesini zorlaştıran temel etkendir. 
-            Eksik değer analizi grafiğine göre veri setindeki eksik gözlemler temizlenmiş veya impute edilmiştir.
+            Sınıf dengesizliği gözlenmesi durumunda model performansı değerlendirilirken Macro F1 metriği tercih edilmelidir.
+            Eksik değer analizi grafiğine göre veri setindeki eksik gözlemler bulunmamaktadır (doluluk oranı tüm sütunlarda %100'dür).
         </div>
         """, unsafe_allow_html=True)
         
     with tab2:
         col1, col2 = st.columns(2)
         with col1:
-            img_dist = os.path.join(base_dir, 'reports', 'figures', 'numerical_distributions.png')
-            display_image(img_dist, "Sayısal Değişkenlerin Dağılımları")
+            img_dist = os.path.join(base_dir, 'reports', 'figures', 'numerical_histograms.png')
+            display_image(img_dist, "Sayısal Değişkenlerin Dağılım Histrogramları")
         with col2:
-            img_box = os.path.join(base_dir, 'reports', 'figures', 'numerical_boxplots.png')
-            display_image(img_box, "Aykırı Değer (Outlier) Bulguları")
+            img_outliers = os.path.join(base_dir, 'reports', 'figures', 'outlier_analysis.png')
+            display_image(img_outliers, "Kritik Değişkenlerde Aykırı Değer (Outlier) Analizi")
             
         st.markdown("""
         <div class='clinical-card'>
             <b>📈 Dağılım ve Aykırı Değer Yorumu:</b><br>
-            Bilirubin, Bakır (Copper), Alkalen Fosfataz (Alk_Phos), Trigliserid (Tryglicerides) gibi laboratuvar değişkenlerinin dağılımları oldukça sağa çarpıktır (positively skewed). 
+            Bilirubin, Bakır (Copper), Alkalen Fosfataz (Alk_Phos) ve SGOT gibi laboratuvar değişkenlerinin dağılımları oldukça sağa çarpıktır (positively skewed). 
             Klinik olarak bu sağa çarpıklık ve boxplot'larda görülen aşırı yüksek aykırı değerler sirozun ciddiyetiyle ve karaciğer hasarının derecesiyle doğrudan örtüşmektedir. 
             Bu aykırı değerler veri hatası değil, gerçek hasta durumlarını yansıttığı için temizlenmek yerine modele dahil edilmiştir.
+            Ağaç tabanlı modellerin (LightGBM) bu uç değerlere karşı robust olduğu bilinmektedir.
         </div>
         """, unsafe_allow_html=True)
         
     with tab3:
-        img_corr = os.path.join(base_dir, 'reports', 'figures', 'correlation_matrix.png')
-        display_image(img_corr, "Korelasyon Heatmap")
+        col1, col2 = st.columns(2)
+        with col1:
+            img_corr = os.path.join(base_dir, 'reports', 'figures', 'correlation_heatmap.png')
+            display_image(img_corr, "Sayısal Bulguların Korelasyon Matrisi Heatmap")
+        with col2:
+            img_pairwise = os.path.join(base_dir, 'reports', 'figures', 'pairwise_relationships.png')
+            display_image(img_pairwise, "Status Sınıflarına Göre Kritik Değişkenlerin İkili İlişkileri (Scatter)")
         
         st.markdown("""
         <div class='clinical-card'>
-            <b>🔗 Korelasyon Yorumu:</b><br>
+            <b>🔗 Korelasyon ve İkili İlişkiler Yorumu:</b><br>
             Korelasyon matrisinde, Bilirubin ve Prothrombin zamanının (pıhtılaşma süresi) hastalık evresiyle pozitif yönde ilişkili olduğu görülürken, Albumin protein sentez yeteneğini yansıttığı için negatif yönde korelasyon sergilemektedir. 
-            Ayrıca safra yolu hasarını yansıtan Alk_Phos ile hepatosellüler hasarı yansıtan SGOT enzimleri arasında anlamlı tıbbi ilişkiler izlenmektedir.
+            Bilirubin-Albümin ve SGOT-Alk_Phos ikili saçılım grafiklerinde vefat (D - kırmızı) ve yaşayan (C - mavi) hastaların farklı alt küme bölgelerinde yoğunlaştığı görülmektedir. 
+            Bu saçılımlar modelin bu sınıfları kolayca ayrıştırabileceğine işaret eder.
+        </div>
+        """, unsafe_allow_html=True)
+
+    with tab4:
+        col1, col2 = st.columns(2)
+        with col1:
+            img_age_bins = os.path.join(base_dir, 'reports', 'figures', 'age_bins_status.png')
+            display_image(img_age_bins, "Yaş Gruplarına Göre Status Dağılımı")
+        with col2:
+            img_radar = os.path.join(base_dir, 'reports', 'figures', 'radar_chart_profile.png')
+            display_image(img_radar, "Status Sınıflarına Göre Normalize Edilmiş Hasta Klinik Profilleri")
+            
+        col3, col4 = st.columns(2)
+        with col3:
+            img_boxplot_status = os.path.join(base_dir, 'reports', 'figures', 'boxplots_by_status.png')
+            display_image(img_boxplot_status, "Status Bazında Önemli Değişkenlerin Boxplot Dağılımı")
+        with col4:
+            img_violin = os.path.join(base_dir, 'reports', 'figures', 'bivariate_violin.png')
+            display_image(img_violin, "Status Bazında Değişkenlerin Keman (Violin) Grafikleri")
+        
+        st.markdown("""
+        <div class='clinical-card'>
+            <b>🎯 Sınıflara Göre Klinik Ayrışma Yorumları:</b><br>
+            <ul>
+                <li><b>Yaş Grupları Dağılımı:</b> Yaş ilerledikçe vefat (D - kırmızı) oranının belirgin derecede arttığı, kompanse/stabil (C - mavi) oranın ise azaldığı izlenir. Bu durum, yaşın siroz mortalitesinde en kritik prediktörlerden biri olduğunu doğrular.</li>
+                <li><b>Klinik Profil (Radar Chart):</b> Vefat eden hastalar (D - kırmızı) karaciğer yetmezliği ve safra yolu harabiyeti bulgularında (Bilirubin, Copper, SGOT, Prothrombin, Albumin Eksikliği) en geniş alanı/en uç değerleri kapsarken; yaşayan hastalar (C - mavi) merkeze en yakın konumdadır.</li>
+                <li><b>Kutu (Boxplot) ve Keman (Violin) Grafikleri:</b> Yaşıyor (C) ve Öldü (D) durumları arasında tahlil bulgularında çok bariz tepe noktası ve varyans farkları bulunmaktadır. Bu örüntüler sınıflar arasındaki varyans farkının ayırt ediciliğini kanıtlar.</li>
+            </ul>
         </div>
         """, unsafe_allow_html=True)
 
@@ -468,7 +505,7 @@ elif page == "5. Sınıf Ağırlıklandırma Deneyleri":
             <b>⚖️ CL Sınıfı Recall / F1 Yorumu:</b><br>
             Varsayılan modelde CL recall değeri %14.54 seviyesindeyken, sınıf dengesizliğini gidermek için <code>class_weight='balanced'</code> parametresi kullanıldığında bu oran <b>%27.27</b>'ye yükselmiştir.<br>
             <code>balanced</code> ayarı, CL sınıfı için otomatik olarak yaklaşık <b>18 kat</b> daha yüksek ağırlık tanımlayarak modelin bu azınlık sınıfı örneklerini kaçırmamasını sağlar. 
-            Manuel ağırlıklarda (1:10:1 veya 1:15:1) precision hafifçe artsa da, klinik hedefin "nakil ihtiyacı olan hastaları gözden kaçırmamak" olması nedeniyle, en yüksek CL Recall veren <b>balanced LightGBM</b> modeli final adayı olarak seçilmiştir.
+            Manuel ağırlıklarda (1:10:1 veya 1:15:1) precision hafifçe artsa da, klinik hedefin \"nakil ihtiyacı olan hastaları gözden kaçırmamak\" olması nedeniyle, en yüksek CL Recall veren <b>balanced LightGBM</b> modeli final adayı olarak seçilmiştir.
         </div>
         """, unsafe_allow_html=True)
         
