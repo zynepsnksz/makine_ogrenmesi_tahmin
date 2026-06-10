@@ -11,6 +11,7 @@ cells = []
 # --- CELL 1: TITLE & INTRODUCTION ---
 cells.append(nbf.v4.new_markdown_cell("""# Karaciğer Sirozu - Veri Ön İşleme (Preprocessing) ve Yeni Özellik Üretimi (Feature Engineering)
 
+                                      
 Bu çalışmada, karaciğer sirozu hastalarının verilerini modellemeye hazır hale getirmek amacıyla veri ön işleme (preprocessing) ve yeni özellik üretimi (feature engineering) adımları uygulanmıştır.
 
 **Uygulanan Ön İşleme Adımları:**
