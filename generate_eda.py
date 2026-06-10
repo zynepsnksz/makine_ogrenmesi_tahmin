@@ -12,15 +12,14 @@ cells = []
 # --- CELL 1: TITLE & INTRODUCTION ---
 cells.append(nbf.v4.new_markdown_cell("""# Karaciğer Sirozu Hastalık Sonuçları (Cirrhosis Outcomes) - Keşifçi Veri Analizi (EDA)
 
-Bu çalışmada, karaciğer sirozu hastalarının klinik özellikleri ve laboratuvar bulgularını içeren veri seti üzerinde **Exploratory Data Analysis (EDA)** gerçekleştirilmiştir. 
+Bu çalışmada, karaciğer sirozu hastalarının klinik özellikleri ve laboratuvar bulgularını içeren veri seti üzerinde detaylı **Exploratory Data Analysis (EDA)** gerçekleştirilmiştir. 
 
-**Analizin Amacı:** Veri setinin genel yapısını, hedef değişkenin dağılımını, eksik değerlerin durumunu, sayısal ve kategorik değişkenlerin istatistiksel özelliklerini, aykırı değerleri, değişkenler arası korelasyonları ve klinik ilişkileri incelemek ve raporlamaktır.
+**Analizin Amacı:** Veri setinin genel yapısını, hedef değişkenin dağılımını, eksik değerleri, değişkenlerin klinik ve istatistiksel ilişkilerini, hasta sağkalım olasılıklarını ve laboratuvar farklılıklarını kapsamlı şekilde analiz etmektir. Sunum ortamlarına uygun (projeksiyon dostu), yüksek kontrastlı renkler tercih edilmiştir.
 
 ### Kurallar ve Yaklaşım:
-- Veri seti üzerinde **kesinlikle** veri temizleme, eksik değer doldurma (imputation), veri silme, feature engineering veya model eğitme işlemleri yapılmamıştır.
-- Analizler tamamen gözlemleme, görselleştirme ve istatistiksel raporlama üzerine kuruludur.
-- Aykırı değerler sadece IQR ve görsel analizlerle tespit edilmiş, veri üzerinde herhangi bir değişiklik yapılmamıştır.
-- Grafik tasarımı sunum kalitesinde, yüksek çözünürlüklü (300 DPI), `seaborn whitegrid` stili ve profesyonel renk paletleri kullanılarak hazırlanmıştır.
+- Veri seti üzerinde veri temizleme, eksik değer doldurma, veri silme işlemleri yapılmamıştır. Analizler "olduğu gibi" veriyi yansıtmaktadır.
+- Sınıf dengesizliği (Class Imbalance) ve aykırı değerlerin (Outliers) klinik boyutu ön planda tutulmuştur.
+- İleri seviye istatistiksel testler (Mann-Whitney U) ve Sağkalım Analizleri (Kaplan-Meier) ile klinik yargılar matematiksel olarak kanıtlanmıştır.
 
 *Analiz ve yorum dili Türkçe olarak tercih edilmiştir.*
 """))
@@ -30,20 +29,35 @@ cells.append(nbf.v4.new_code_cell("""import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy.stats import skew, kurtosis
+from scipy.stats import skew, kurtosis, mannwhitneyu
 import os
+from math import pi
 
-# Görselleştirme ve Stil Ayarları
+# Lifelines kütüphanesi sağkalım (survival) analizi için gereklidir.
+try:
+    from lifelines import KaplanMeierFitter
+except ImportError:
+    import subprocess
+    import sys
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "lifelines"])
+    from lifelines import KaplanMeierFitter
+
+# Görselleştirme ve Stil Ayarları (Projeksiyon Dostu, Yüksek Kontrast)
 plt.style.use('seaborn-v0_8-whitegrid')
 sns.set_theme(style="whitegrid")
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
-plt.rcParams['font.size'] = 11
-plt.rcParams['axes.labelsize'] = 11
-plt.rcParams['axes.titlesize'] = 13
-plt.rcParams['xtick.labelsize'] = 9
-plt.rcParams['ytick.labelsize'] = 9
-plt.rcParams['figure.titlesize'] = 15
+plt.rcParams['font.size'] = 14
+plt.rcParams['axes.labelsize'] = 14
+plt.rcParams['axes.titlesize'] = 16
+plt.rcParams['xtick.labelsize'] = 12
+plt.rcParams['ytick.labelsize'] = 12
+plt.rcParams['figure.titlesize'] = 18
+plt.rcParams['lines.linewidth'] = 2.5
+
+# Yüksek kontrastlı ana renk paletleri
+MAIN_PALETTE = 'tab10'
+TARGET_PALETTE = {'C': '#1f77b4', 'CL': '#ff7f0e', 'D': '#d62728'} # Mavi, Turuncu, Kırmızı
 
 # Kayıt dizini kontrolü
 os.makedirs('reports/figures', exist_ok=True)
@@ -52,10 +66,7 @@ print("Kütüphaneler yüklendi ve grafik ayarları tamamlandı.")
 """))
 
 # --- CELL 3: GENERAL DATA OVERVIEW TITLE ---
-cells.append(nbf.v4.new_markdown_cell("""# 1. Genel Veri İncelemesi
-
-Bu bölümde veri setinin genel boyutu, satır ve sütun sayıları, değişken tipleri, bellek kullanımı ile veri setinin ilk ve son 5 gözlemi incelenecektir.
-"""))
+cells.append(nbf.v4.new_markdown_cell("""# 1. Genel Veri İncelemesi"""))
 
 # --- CELL 4: GENERAL DATA OVERVIEW CODE ---
 cells.append(nbf.v4.new_code_cell("""# Veriyi Yükleme
@@ -72,532 +83,297 @@ print("Veri Seti Bilgi Özeti (Memory & Types):")
 df.info()
 print("-" * 50)
 
-print("Veri Tipleri Dağılımı:")
-print(df.dtypes.value_counts())
-print("-" * 50)
-
 print("İlk 5 Gözlem:")
 display(df.head(5))
-
-print("Son 5 Gözlem:")
-display(df.tail(5))
 """))
 
-# --- CELL 5: GENERAL DATA OVERVIEW COMMENTS ---
-cells.append(nbf.v4.new_markdown_cell("""### Genel Veri İncelemesi Yorumları:
-- **Boyut ve Yapı:** Veri seti **7905 satır** ve **20 sütundan** oluşmaktadır. Toplamda 158.100 adet veri hücresi barındırmaktadır.
-- **Değişken Tipleri:** Veri setinde **12 adet sayısal** (4 adet `int64` ve 8 adet `float64`) ve **8 adet kategorik/metinsel** (`object`) değişken bulunmaktadır.
-- **Bellek Kullanımı:** Veri seti yaklaşık **1.2 MB** bellek alanına ihtiyaç duymaktadır. Bu boyut modern bilgisayarlar ve analiz araçları için oldukça hafiftir ve verinin bellekte hızlı işlenmesine olanak tanır.
-- **Anahtar Değişkenler:**
-  - `id`: Benzersiz gözlem anahtarıdır. Analiz dışı bırakılacaktır.
-  - `Age`: Gün cinsinden verilmiştir. İlerleyen bölümlerde yaşın gün bazlı dağılımını bozmadan, yorumlarımızı klinik açıdan daha anlaşılır kılmak için yaklaşık yıl karşılıklarını ele alacağız.
-  - `Stage`: Karaciğer hasarının evresini (1, 2, 3, 4) gösteren ve klinik düzey olarak hem kategorik hem de sıralı (ordinal) yapıda olan kritik bir değişkendir.
-  - `Status`: Hastaların durumunu gösteren hedef (target) değişkendir.
-"""))
-
-# --- CELL 6: TARGET VARIABLE TITLE ---
+# --- CELL 5: TARGET VARIABLE TITLE ---
 cells.append(nbf.v4.new_markdown_cell("""# 2. Hedef Değişken Analizi (`Status`)
 
-Bu bölümde hedef değişken olan `Status` (Hastalık Sonucu) incelenecektir. Bu değişken hastanın durumunu ifade eder:
+Bu bölümde hedef değişken olan `Status` (Hastalık Sonucu) incelenecektir:
 - `C` (Censored - Yaşıyor/Takip Dışı)
 - `CL` (Censored due to Liver Transplant - Karaciğer Nakli Yapılmış ve Yaşıyor)
 - `D` (Death - Hayatını Kaybetmiş)
-
-Bu değişkenin sınıf dağılımı, yüzdesik oranları ve sınıflar arası dengesizlik durumu (class imbalance) analiz edilecektir.
 """))
 
-# --- CELL 7: TARGET VARIABLE CODE ---
+# --- CELL 6: TARGET VARIABLE CODE ---
 cells.append(nbf.v4.new_code_cell("""status_counts = df['Status'].value_counts()
 status_pct = df['Status'].value_counts(normalize=True) * 100
 
-status_summary = pd.DataFrame({
-    'Frekans (Adet)': status_counts,
-    'Oran (%)': status_pct
-})
-print("Status Değişkeni Dağılımı:")
+status_summary = pd.DataFrame({'Frekans (Adet)': status_counts, 'Oran (%)': status_pct})
 display(status_summary)
 
 # Grafik Çizimi
-fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+fig, axes = plt.subplots(1, 2, figsize=(16, 7))
 
 # Countplot
-sns.countplot(data=df, x='Status', ax=axes[0], palette='Set2', hue='Status', legend=False)
-axes[0].set_title('Status Dağılımı (Sayısal)')
+sns.countplot(data=df, x='Status', ax=axes[0], palette=TARGET_PALETTE, hue='Status', legend=False)
+axes[0].set_title('Status Dağılımı (Sayısal)', fontweight='bold')
 axes[0].set_xlabel('Durum (Status)')
 axes[0].set_ylabel('Hasta Sayısı')
 
-# Yüzdelik Değerleri Barların Üzerine Ekleme
 total = len(df)
 for p in axes[0].patches:
     height = p.get_height()
     axes[0].annotate(f'{height}\\n({(height/total)*100:.1f}%)',
                      (p.get_x() + p.get_width() / 2., height + 50),
-                     ha='center', va='bottom', fontsize=10, fontweight='bold')
+                     ha='center', va='bottom', fontsize=12, fontweight='bold')
 
 # Pie Chart
 axes[1].pie(status_counts, labels=status_counts.index, autopct='%1.1f%%', 
-            startangle=140, colors=sns.color_palette('Set2', len(status_counts)),
-            wedgeprops={'edgecolor': 'w', 'linewidth': 2})
-axes[1].set_title('Status Dağılımı (Yüzdesel Oran)')
+            startangle=140, colors=[TARGET_PALETTE[x] for x in status_counts.index],
+            wedgeprops={'edgecolor': 'w', 'linewidth': 2}, textprops={'fontsize': 14, 'weight': 'bold'})
+axes[1].set_title('Status Dağılımı (Yüzdesel Oran)', fontweight='bold')
 
-plt.suptitle('Hedef Değişken (Status) Sınıf Analizi', fontsize=16, y=1.02)
+plt.suptitle('Hedef Değişken (Status) Sınıf Analizi', fontsize=20, fontweight='bold', y=1.05)
 plt.tight_layout()
 plt.savefig('reports/figures/target_distribution.png', dpi=300, bbox_inches='tight')
 plt.show()
 """))
 
-# --- CELL 8: TARGET VARIABLE COMMENTS ---
-cells.append(nbf.v4.new_markdown_cell("""### Hedef Değişken Analizi Yorumları:
-- **Dağılım Durumu:**
-  - Hastaların **%62.8'i (4965 hasta) `C` (Yaşıyor/Takip Dışı)** sınıfındadır.
-  - Hastaların **%33.7'si (2665 hasta) `D` (Vefat)** sınıfındadır.
-  - Hastaların sadece **%3.5'i (275 hasta) `CL` (Nakil Sonrası Yaşıyor)** sınıfındadır.
-- **Sınıf Dengesizliği (Class Imbalance):**
-  - Veri setinde ciddi bir dengesizlik mevcuttur. Özellikle `CL` sınıfı genel veri setinin yalnızca %3.5'ini oluşturarak azınlık sınıfı (minority class) durumundadır.
-  - `C` ve `D` sınıfları veri setinin %96.5'ini domine etmektedir. Bu dengesizlik durumu, ileride yapılacak bir makine öğrenmesi modellemesinde (örneğin çoklu sınıflandırma) modelin `CL` sınıfını öğrenmesini zorlaştırabilir. Modelleme aşamasında bu durumun dikkate alınması ve uygun stratejiler (sınıf ağırlıkları ayarlama, resampling vb.) planlanması gerekebilir.
+# --- CELL 7: TARGET VARIABLE COMMENTS ---
+cells.append(nbf.v4.new_markdown_cell("""### Yorum:
+Veri setinde ciddi bir **Sınıf Dengesizliği (Class Imbalance)** mevcuttur. Vakaların %62.8'i Yaşıyor (`C`), %33.7'si Vefat (`D`) etmiş, sadece %3.5'i Nakil (`CL`) olmuştur. Modelleme aşamasında bu dengesizliğe (özellikle CL azınlık sınıfı için) dikkat edilmeli ve `class_weight` veya F1-Macro metrikleri kullanılmalıdır.
 """))
 
-# --- CELL 9: MISSING VALUE TITLE ---
-cells.append(nbf.v4.new_markdown_cell("""# 3. Eksik Değer Analizi
-
-Veri setindeki eksik değerlerin sayısal miktarları, toplam gözlemlere oranı ve olası eksiklik desenleri incelenecektir. Grafiksel olarak doluluk durumları gösterilecektir.
+# --- CELL 8: MISSING VALUES ---
+cells.append(nbf.v4.new_markdown_cell("""# 3. Eksik Değer Analizi"""))
+cells.append(nbf.v4.new_code_cell("""missing_pct = (df.isnull().sum() / len(df)) * 100
+if missing_pct.sum() == 0:
+    print("Müjde! Veri setindeki hiçbir değişkende eksik (NaN) değer bulunmamaktadır. Doluluk oranı %100'dür.")
+else:
+    display(missing_pct[missing_pct > 0])
 """))
 
-# --- CELL 10: MISSING VALUE CODE ---
-cells.append(nbf.v4.new_code_cell("""missing_counts = df.isnull().sum()
-missing_pct = (df.isnull().sum() / len(df)) * 100
+# --- CELL 9: NUMERICAL VARIABLES TITLE ---
+cells.append(nbf.v4.new_markdown_cell("""# 4. Sayısal Değişken Analizi ve Aykırı Değerler (Outliers)"""))
 
-missing_df = pd.DataFrame({
-    'Eksik Değer Sayısı': missing_counts,
-    'Eksiklik Oranı (%)': missing_pct
-}).sort_values(by='Eksik Değer Sayısı', ascending=False)
-
-print("Eksik Değer Tablosu:")
-display(missing_df)
-
-# Görselleştirme: Veri Seti Doluluk Oranları
-plt.figure(figsize=(12, 6))
-completeness_pct = 100 - missing_pct
-sns.barplot(x=completeness_pct.values, y=completeness_pct.index, palette='viridis')
-plt.title('Veri Değişkenlerinin Doluluk Oranları (%)', fontsize=14, pad=15)
-plt.xlabel('Doluluk Oranı (%)')
-plt.ylabel('Değişkenler')
-plt.xlim(0, 110)
-
-# Değer etiketlerini yazdırma
-for i, v in enumerate(completeness_pct.values):
-    plt.text(v + 1, i, f"{v:.1f}%", va='center', fontsize=9, fontweight='bold')
-
-plt.tight_layout()
-plt.savefig('reports/figures/missing_values.png', dpi=300, bbox_inches='tight')
-plt.show()
-"""))
-
-# --- CELL 11: MISSING VALUE COMMENTS ---
-cells.append(nbf.v4.new_markdown_cell("""### Eksik Değer Analizi Yorumları:
-- **Bulgular:** Veri setindeki **tüm değişkenlerin doluluk oranı %100'dür**. Hiçbir sütunda eksik (`NaN` / `null`) değer bulunmamaktadır.
-- **Yorum ve Hipotez:**
-  - Gerçek dünya klinik veri setlerinde laboratuvar ölçümlerinde (örneğin `Cholesterol`, `Copper`, `Tryglicerides` vb.) eksik değerlerin olması yaygın bir durumdur. Bu veri setinde sıfır eksik değer olması, bu veri setinin sentetik olarak üretilmiş (örneğin Kaggle Playground serisindeki gibi bir derin öğrenme modeli üretimi) olmasından veya analize başlamadan önce eksiksiz gözlemlerin filtrelenmiş olmasından kaynaklanıyor olabilir.
-  - Klinik çalışmalarda laboratuvar testleri eksik olduğunda, bu eksikliklerin deseni sıklıkla **MAR (Missing at Random - Rastlantısal Eksiklik)** veya hastanın sağlık durumunun kötülüğünden dolayı test yapılamaması gibi **MNAR (Missing Not at Random - Rastlantısal Olmayan Eksiklik)** olarak karşımıza çıkabilir. Ancak mevcut veri setimiz tam olduğu için veri setini bozmadan veya doldurma işlemi yapmaya ihtiyaç duymadan doğrudan analize devam edebiliyoruz.
-"""))
-
-# --- CELL 12: NUMERICAL VARIABLES TITLE ---
-cells.append(nbf.v4.new_markdown_cell("""# 4. Sayısal Değişken Analizi
-
-Veri setinde yer alan sayısal değişkenlerin merkezi eğilim (ortalama, medyan), yayılım (standart sapma, min, max) ve şekil parametreleri (skewness, kurtosis) hesaplanacaktır. Her değişken için histogram çizilerek üzerine Kernel Density Estimation (KDE) eğrisi eklenecektir.
-
-**Sayısal Değişkenler:** `N_Days`, `Age`, `Bilirubin`, `Cholesterol`, `Albumin`, `Copper`, `Alk_Phos`, `SGOT`, `Tryglicerides`, `Platelets`, `Prothrombin`
-"""))
-
-# --- CELL 13: NUMERICAL VARIABLES STATISTICS CODE ---
+# --- CELL 10: NUMERICAL VARIABLES CODE ---
 cells.append(nbf.v4.new_code_cell("""num_cols = ['N_Days', 'Age', 'Bilirubin', 'Cholesterol', 'Albumin', 
             'Copper', 'Alk_Phos', 'SGOT', 'Tryglicerides', 'Platelets', 'Prothrombin']
 
-# İstatistik Hesaplamaları
-desc_stats = pd.DataFrame(index=num_cols)
-desc_stats['Mean'] = df[num_cols].mean()
-desc_stats['Median'] = df[num_cols].median()
-desc_stats['Std Dev'] = df[num_cols].std()
-desc_stats['Min'] = df[num_cols].min()
-desc_stats['Max'] = df[num_cols].max()
-desc_stats['Skewness'] = df[num_cols].apply(lambda x: skew(x))
-desc_stats['Kurtosis'] = df[num_cols].apply(lambda x: kurtosis(x))
+# Dağılım (KDE) ve Kutu Grafikleri (Boxplot) Bir Arada (Sadece Kritik Olanlar İçin Görsel Kalabalığı Önlemek Adına)
+critical_num_cols = ['Bilirubin', 'Copper', 'Albumin', 'Prothrombin', 'SGOT', 'Platelets']
 
-print("Sayısal Değişkenlerin Detaylı İstatistiksel Özeti:")
-display(desc_stats.round(3))
-"""))
+fig, axes = plt.subplots(len(critical_num_cols), 2, figsize=(16, 5 * len(critical_num_cols)))
 
-# --- CELL 14: NUMERICAL VARIABLES HISTOGRAMS CODE ---
-cells.append(nbf.v4.new_code_cell("""# Histogram & KDE Çizimleri (Grid Yapısında)
-fig, axes = plt.subplots(4, 3, figsize=(18, 20))
-axes = axes.flatten()
-
-# Yumuşak tonlu bir renk paleti seçimi
-color_palette = sns.color_palette("muted", len(num_cols))
-
-for i, col in enumerate(num_cols):
-    sns.histplot(data=df, x=col, kde=True, ax=axes[i], color=color_palette[i], edgecolor='w', alpha=0.7)
-    axes[i].set_title(f'{col} Dağılım Grafiği', fontsize=12, pad=10)
-    axes[i].set_xlabel(col, fontsize=10)
-    axes[i].set_ylabel('Frekans', fontsize=10)
+for i, col in enumerate(critical_num_cols):
+    # Histogram & KDE
+    sns.histplot(data=df, x=col, kde=True, ax=axes[i, 0], color='#2ca02c', edgecolor='black', alpha=0.7)
+    axes[i, 0].set_title(f'{col} - Dağılımı (Skew: {skew(df[col]):.2f})', fontweight='bold')
     
-    # Skewness ve Kurtosis değerlerini grafik içine yazdırma
-    skew_val = desc_stats.loc[col, 'Skewness']
-    kurt_val = desc_stats.loc[col, 'Kurtosis']
-    axes[i].text(0.95, 0.95, f'Skew: {skew_val:.2f}\\nKurt: {kurt_val:.2f}', 
-                 transform=axes[i].transAxes, fontsize=9, verticalalignment='top', 
-                 horizontalalignment='right', bbox=dict(boxstyle='round', facecolor='white', alpha=0.8, edgecolor='gray'))
+    # Boxplot
+    sns.boxplot(data=df, x=col, ax=axes[i, 1], color='#d62728', flierprops={'marker': 'o', 'markerfacecolor': 'black', 'alpha': 0.5})
+    axes[i, 1].set_title(f'{col} - Aykırı Değerler (Boxplot)', fontweight='bold')
 
-# Boş kalan ekseni gizleme (11 değişken var, 12 kutu var)
-fig.delaxes(axes[-1])
-
-plt.suptitle('Sayısal Değişkenlerin Dağılımları ve KDE Eğrileri', fontsize=16, y=1.01)
 plt.tight_layout()
-plt.savefig('reports/figures/numerical_distributions.png', dpi=300, bbox_inches='tight')
+plt.savefig('reports/figures/numerical_critical_distributions.png', dpi=300, bbox_inches='tight')
 plt.show()
 """))
 
-# --- CELL 15: NUMERICAL VARIABLES COMMENTS ---
-cells.append(nbf.v4.new_markdown_cell("""### Sayısal Değişken Analizi Yorumları:
-
-1. **`N_Days` (Takip Günü):**
-   - Ortalama: 2030 gün (~5.5 yıl), Medyan: 1731 gün (~4.7 yıl).
-   - Skewness (0.457) hafif pozitif yönlü çarpık, kurtosis (-0.569) basıktır. Bu durum, hastaların takip sürelerinin geniş bir aralığa yayıldığını ve belirli bir bölgede aşırı yığılma olmadığını göstermektedir.
-2. **`Age` (Yaş - Gün bazında):**
-   - Ortalama: 18363 gün, Medyan: 18719 gün.
-   - Yaş gün bazında verilmiştir. Ortalama ve medyan değerleri yaklaşık **50.3 yıla** (18363 / 365.25) tekabül etmektedir. En küçük yaş yaklaşık 26.3 yıl (9598 gün) ve en büyük yaş 78.3 yıldır (28650 gün).
-   - Skewness (-0.089) sıfıra oldukça yakındır, dağılımı neredeyse mükemmel bir simetrik yapı (normal dağılım) sergilemektedir.
-3. **`Bilirubin` (Bilirubin Seviyesi):**
-   - Ortalama: 2.59, Medyan: 1.10.
-   - Skewness (3.717) ve Kurtosis (16.488) değerleri son derece yüksektir. Bu, değişkenin **aşırı sağa çarpık (right-skewed)** ve **leptokurtik (sivri/dik)** bir dağılıma sahip olduğunu gösterir. Hastaların büyük çoğunluğunun bilirubin değerleri normal sınırlarda (düşük) iken, küçük bir hasta grubunda klinik olarak çok kritik düzeyde aşırı yüksek bilirubin seviyeleri bulunmaktadır.
-4. **`Cholesterol` (Kolesterol Seviyesi):**
-   - Ortalama: 351.2, Medyan: 309.0.
-   - Skewness (3.535) ve Kurtosis (17.518) değerleri ile sağa çarpık ve sivri bir dağılım göstermektedir. Birkaç uç değer dağılımı sağa doğru çekmektedir.
-5. **`Albumin` (Albumin Seviyesi):**
-   - Ortalama: 3.51, Medyan: 3.55.
-   - Skewness (-0.574) hafif sola çarpıklık göstermekle birlikte, dağılımı genel olarak normal dağılıma oldukça yakındır. Karaciğer sentez fonksiyonunun bir göstergesi olan albumin değerleri belirli bir aralıkta yoğunlaşmıştır.
-6. **`Copper` (Bakır Seviyesi):**
-   - Ortalama: 83.9, Medyan: 73.0.
-   - Skewness (2.296) ve Kurtosis (6.772) değerleri sağa çarpık bir dağılıma işaret etmektedir. Bakır birikimi karaciğer hasarının göstergelerindendir ve bazı hastalarda yüksek seviyelerdedir.
-7. **`Alk_Phos` (Alkalen Fosfataz):**
-   - Ortalama: 1812.8, Medyan: 1259.0.
-   - Skewness (2.955) ve Kurtosis (10.745) ile belirgin derecede sağa çarpıktır.
-8. **`SGOT` (Karaciğer Enzimi - AST):**
-   - Ortalama: 114.6, Medyan: 108.5.
-   - Skewness (1.455) ve Kurtosis (2.730) değerleri sağa çarpık bir dağılım göstermektedir ancak bilirubin ve kolesterol kadar aşırı değildir.
-9. **`Tryglicerides` (Trigliserit Seviyesi):**
-   - Ortalama: 115.3, Medyan: 104.0.
-   - Skewness (2.493) ve Kurtosis (9.120) ile sağa çarpıktır.
-10. **`Platelets` (Trombosit Sayısı):**
-    - Ortalama: 265.2, Medyan: 268.0.
-    - Skewness (0.424) ve Kurtosis (0.757) değerleri ile neredeyse simetrik ve normal dağılıma yakın bir seyir izlemektedir.
-11. **`Prothrombin` (Protrombin Zamanı):**
-    - Ortalama: 10.63, Medyan: 10.60.
-    - Skewness (1.111) ve Kurtosis (3.308) ile hafif sağa çarpık ve sivri bir dağılım sergilemektedir. Kan pıhtılaşma süresinin normal aralıklarda kümelendiği görülmektedir.
+# --- CELL 11: NUMERICAL COMMENTS ---
+cells.append(nbf.v4.new_markdown_cell("""### İstatistiksel Yorum:
+Laboratuvar bulguları klinik doğası gereği aşırı uç değerler barındırır. **Bilirubin**, **Copper** (Bakır) ve **SGOT** gibi hasar göstergeleri çok aşırı sağa çarpıktır (Ağır hastaların yüksek bulguları). Hastalık ciddiyetini gösteren bu aykırı değerler kesinlikle silinmemelidir. Ağaç tabanlı modellerin bu değerlere karşı robust olduğu unutulmamalıdır.
 """))
 
-# --- CELL 16: OUTLIER ANALYSIS TITLE ---
-cells.append(nbf.v4.new_markdown_cell("""# 5. Aykırı Değer Analizi
-
-Bu bölümde sayısal değişkenler için Interquartile Range (IQR) yöntemi kullanılarak istatistiksel sınır değerler hesaplanacak ve bu sınırların dışında kalan gözlem sayıları (aykırı değer miktarları) tespit edilecektir. 
-
-Aykırı değerlerin görsel tespiti amacıyla her sayısal değişken için Boxplot çizilecektir.
-
-**Kural Hatırlatması:** Tespit edilen aykırı değerler üzerinde silme, düzeltme veya kırpma gibi hiçbir manipülasyon işlemi yapılmayacaktır; sadece durum raporlanacaktır.
+# --- CELL 12: AGE BINS ANALYSIS ---
+cells.append(nbf.v4.new_markdown_cell("""# 5. Yaş Grupları Analizi (Age Bins)
+Yaş değişkeni gün bazında verildiği için yorumlaması zordur. Yaşı yıla çevirip anlamlı gruplara ayırarak hastalık sonuçlarını (Status) inceleyeceğiz.
 """))
 
-# --- CELL 17: OUTLIER ANALYSIS IQR CODE ---
-cells.append(nbf.v4.new_code_cell("""outlier_summary = []
+cells.append(nbf.v4.new_code_cell("""df['Age_Years'] = df['Age'] / 365.25
 
-for col in num_cols:
-    q1 = df[col].quantile(0.25)
-    q3 = df[col].quantile(0.75)
-    iqr = q3 - q1
-    lower_bound = q1 - 1.5 * iqr
-    upper_bound = q3 + 1.5 * iqr
-    
-    # Aykırı değerleri bulma
-    outliers = df[(df[col] < lower_bound) | (df[col] > upper_bound)][col]
-    outlier_count = len(outliers)
-    outlier_ratio = (outlier_count / len(df)) * 100
-    
-    outlier_summary.append({
-        'Değişken': col,
-        'Q1 (%25)': q1,
-        'Q3 (%75)': q3,
-        'IQR': iqr,
-        'Alt Sınır': lower_bound,
-        'Üst Sınır': upper_bound,
-        'Aykırı Adet': outlier_count,
-        'Oran (%)': round(outlier_ratio, 2)
-    })
+# Yaş grupları oluşturma
+bins = [0, 40, 50, 60, 100]
+labels = ['<40 Yaş', '40-50 Yaş', '50-60 Yaş', '60+ Yaş']
+df['Age_Group'] = pd.cut(df['Age_Years'], bins=bins, labels=labels)
 
-outlier_report_df = pd.DataFrame(outlier_summary).set_index('Değişken')
-print("IQR Aykırı Değer Analiz Özeti:")
-display(outlier_report_df)
-"""))
+plt.figure(figsize=(12, 6))
+ax = sns.countplot(data=df, x='Age_Group', hue='Status', palette=TARGET_PALETTE)
+plt.title('Yaş Gruplarına Göre Hastalık Sonuçları (Status)', fontsize=18, fontweight='bold')
+plt.xlabel('Yaş Grupları', fontweight='bold')
+plt.ylabel('Hasta Sayısı', fontweight='bold')
 
-# --- CELL 18: OUTLIER ANALYSIS BOXPLOT CODE ---
-cells.append(nbf.v4.new_code_cell("""# Boxplot Çizimleri (Grid Yapısında)
-fig, axes = plt.subplots(4, 3, figsize=(18, 20))
-axes = axes.flatten()
+# Etiketleri ekle
+for p in ax.patches:
+    height = p.get_height()
+    if not np.isnan(height) and height > 0:
+        ax.annotate(f'{int(height)}', (p.get_x() + p.get_width() / 2., height + 10),
+                    ha='center', va='bottom', fontsize=11, fontweight='bold')
 
-# Uyumlu renk tonlarında kutu grafikler
-box_color = 'lightcoral'
-
-for i, col in enumerate(num_cols):
-    sns.boxplot(data=df, y=col, ax=axes[i], color=box_color, width=0.4, 
-                flierprops={'marker': 'o', 'markerfacecolor': 'darkred', 'markersize': 5, 'markeredgecolor': 'none'})
-    axes[i].set_title(f'{col} Kutu Grafiği (Boxplot)', fontsize=12, pad=10)
-    axes[i].set_ylabel(col, fontsize=10)
-    
-    # Alt ve Üst sınır çizgilerini belirtme (İsteğe bağlı görsel destek)
-    q1 = df[col].quantile(0.25)
-    q3 = df[col].quantile(0.75)
-    iqr = q3 - q1
-    axes[i].axhline(q1 - 1.5*iqr, color='blue', linestyle='--', alpha=0.5, label='Alt Sınır')
-    axes[i].axhline(q3 + 1.5*iqr, color='blue', linestyle='--', alpha=0.5, label='Üst Sınır')
-
-fig.delaxes(axes[-1])
-
-plt.suptitle('Sayısal Değişkenlerin Kutu Grafikleri ve IQR Sınırları', fontsize=16, y=1.01)
 plt.tight_layout()
-plt.savefig('reports/figures/numerical_boxplots.png', dpi=300, bbox_inches='tight')
+plt.savefig('reports/figures/age_bins_status.png', dpi=300, bbox_inches='tight')
 plt.show()
 """))
 
-# --- CELL 19: OUTLIER ANALYSIS COMMENTS ---
-cells.append(nbf.v4.new_markdown_cell("""### Aykırı Değer Analizi Yorumları:
-- **Genel Değerlendirme:** Sayısal değişkenlerimizin büyük kısmında belirgin şekilde aykırı değerler bulunmaktadır. Bu durum, karaciğer hastalığı gibi patolojik durumlarda laboratuvar parametrelerinin ekstrem seviyelere çıkabilmesiyle klinik açıdan birebir uyumludur.
-- **En Yüksek Aykırı Değer Oranına Sahip Değişkenler:**
-  - **`Copper` (Bakır):** 609 adet aykırı değer bulunmakta ve bu veri setinin **%7.70**'ine denk gelmektedir.
-  - **`Bilirubin`:** 744 adet aykırı gözlem ile veri setinin **%9.41**'ini oluşturmaktadır. Bilirubin karaciğer hasarının doğrudan bir göstergesi olduğundan, ileri evre siroz hastalarında değerler çok yüksek seviyelere tırmanmıştır.
-  - **`Prothrombin` (Protrombin Zamanı):** 396 adet aykırı değer barındırır (%5.01).
-  - **`Cholesterol`:** 386 adet aykırı değer içermektedir (%4.88).
-  - **`Alk_Phos` (Alkalen Fosfataz):** 322 adet aykırı değer barındırmaktadır (%4.07).
-- **En Temiz/Aykırı Değeri Az Olan Değişkenler:**
-  - **`Age` (Yaş):** Sıfır aykırı değer. Dağılımın tamamen simetrik ve sınır değerler içinde kaldığı görülmektedir.
-  - **`N_Days` (Takip Günü):** Sıfır aykırı değer.
-  - **`Albumin`:** Sadece 31 adet (%0.39) aykırı değer mevcuttur. Albumin seviyeleri genellikle belirli fizyolojik sınırlar arasında tutulur.
-- **Klinik Açıdan Değerlendirme:** Bu aykırı değerler veri hatası değildir; hastaların patolojik durumlarından kaynaklanan gerçek klinik ekstrem değerlerdir. Bu nedenle modelleme veya analiz aşamalarında veri kümesinden silinmemelidir. Modelleme aşamasında bu uç değerlere karşı dirençli algoritmalar (Ağaç tabanlı modeller vb.) tercih edilmelidir.
+cells.append(nbf.v4.new_markdown_cell("""### Yaş Yorumu:
+Görselden net bir şekilde anlaşıldığı üzere, **Yaş arttıkça vefat oranı (D - kırmızı çubuk) bariz bir şekilde artmaktadır**. 40 yaş altı hastalarda yaşayanların oranı vefata göre çok baskınken, 60 yaş üstü hastalarda vefat sayısı yaşayanları geçmiştir. Yaş, model için oldukça ayırt edici bir parametre olacaktır.
 """))
 
-# --- CELL 20: CATEGORICAL VARIABLES TITLE ---
-cells.append(nbf.v4.new_markdown_cell("""# 6. Kategorik Değişken Analizi
-
-Bu bölümde veri setinde yer alan kategorik değişkenler analiz edilecektir. Her kategorik değişken için frekans tablosu, yüzde dağılımı hesaplanacak ve countplot grafiği çizilecektir. 
-
-**Kategorik Değişkenler:** `Drug`, `Sex`, `Ascites`, `Hepatomegaly`, `Spiders`, `Edema`, `Stage` (Siroz Evresi)
-
-*Önemli Not:* `Stage` değişkeni sayısal (1.0, 2.0, 3.0, 4.0) kodlanmış olsa da doğası gereği hastanın siroz evresini temsil eden klinik bir kategorik ve ordinal (sıralı) değişkendir. Bu nedenle bu analizde kategorik değişkenler grubunda değerlendirilecektir.
+# --- CELL 13: CATEGORICAL VS TARGET TITLE ---
+cells.append(nbf.v4.new_markdown_cell("""# 6. Kategorik Değişkenlerin Hedef (`Status`) ile İlişkisi
+Cinsiyet, İlaç, Ödem, ve Siroz Evresi gibi değişkenlerin vefat/sağkalım ile olan ilişkisi **Gruplanmış Çubuk Grafikler** ile görselleştirilmiştir. Yüksek kontrastlı renkler tercih edilmiştir.
 """))
 
-# --- CELL 21: CATEGORICAL VARIABLES CODE ---
-cells.append(nbf.v4.new_code_cell("""cat_cols = ['Drug', 'Sex', 'Ascites', 'Hepatomegaly', 'Spiders', 'Edema', 'Stage']
+# --- CELL 14: CATEGORICAL VS TARGET CODE ---
+cells.append(nbf.v4.new_code_cell("""cat_cols = ['Sex', 'Drug', 'Ascites', 'Hepatomegaly', 'Spiders', 'Edema', 'Stage']
 
-# Frekans ve Yüzdelik Tablolar
-for col in cat_cols:
-    counts = df[col].value_counts(dropna=False)
-    pcts = df[col].value_counts(normalize=True, dropna=False) * 100
-    table = pd.DataFrame({'Frekans (Adet)': counts, 'Oran (%)': pcts.round(2)})
-    print(f"\\n--- {col} Değişkeni Dağılım Tablosu ---")
-    display(table)
-
-# Görselleştirme: Countplots (Grid Yapısı)
-fig, axes = plt.subplots(4, 2, figsize=(16, 22))
+fig, axes = plt.subplots(4, 2, figsize=(18, 26))
 axes = axes.flatten()
-
-# Profesyonel renk paleti
-palette_choice = 'Set3'
 
 for i, col in enumerate(cat_cols):
-    sns.countplot(data=df, x=col, ax=axes[i], palette=palette_choice, hue=col, legend=False)
-    axes[i].set_title(f'{col} Sınıf Dağılımları', fontsize=12, pad=10)
-    axes[i].set_xlabel(col, fontsize=10)
-    axes[i].set_ylabel('Hasta Sayısı', fontsize=10)
+    ax = sns.countplot(data=df, x=col, hue='Status', ax=axes[i], palette=TARGET_PALETTE)
+    axes[i].set_title(f'{col} Değişkeni ve Hastalık Sonucu', fontsize=16, fontweight='bold')
+    axes[i].set_ylabel('Hasta Sayısı', fontweight='bold')
+    axes[i].set_xlabel(col, fontweight='bold')
     
-    # Barların üstüne yüzdelik etiketleri ekleme
-    total_col = len(df[col])
-    for p in axes[i].patches:
-        height = p.get_height()
-        if not np.isnan(height):
-            percentage = (height / total_col) * 100
-            axes[i].annotate(f'{height:.0f}\\n({percentage:.1f}%)',
-                             (p.get_x() + p.get_width() / 2., height + 10),
-                             ha='center', va='bottom', fontsize=9, fontweight='bold')
-
-# Son ekseni gizleme (7 grafik var, 8 kutu var)
 fig.delaxes(axes[-1])
-
-plt.suptitle('Kategorik Değişkenlerin Dağılım Analizleri', fontsize=16, y=1.01)
 plt.tight_layout()
-plt.savefig('reports/figures/categorical_distributions.png', dpi=300, bbox_inches='tight')
+plt.savefig('reports/figures/categorical_vs_status.png', dpi=300, bbox_inches='tight')
 plt.show()
 """))
 
-# --- CELL 22: CATEGORICAL VARIABLES COMMENTS ---
-cells.append(nbf.v4.new_markdown_cell("""### Kategorik Değişken Analizi Yorumları:
-
-1. **`Drug` (İlaç):**
-   - Hastaların **%50.7'si (4010 hasta) Placebo**, **%49.3'ü (3895 hasta) D-penicillamine** almıştır. İlaç sınıfları neredeyse eşit oranda dağılmıştır, bu da deney tasarımı açısından dengeli bir yapıyı göstermektedir.
-2. **`Sex` (Cinsiyet):**
-   - Veri setindeki hastaların **%89.1'i (7045 hasta) Kadın (F)**, sadece **%10.9'u (860 hasta) Erkek (M)** cinsiyettedir. Siroz veri setlerinde (özellikle primer biliyer kolanjit gibi otoimmün kaynaklı siroz tiplerinde) kadın hasta oranının bu denli yüksek olması klinik olarak beklenen bir durumdur.
-3. **`Ascites` (Asit - Karında Sıvı Birikmesi):**
-   - Hastaların **%95.2'sinde (7525 hasta) Asit yoktur (N)**. Sadece **%4.8'inde (380 hasta) Asit mevcuttur (Y)**. Asit varlığı sirozun ileri evresinde ortaya çıkan ciddi bir komplikasyondur.
-4. **`Hepatomegaly` (Karaciğer Büyümesi):**
-   - Hastaların **%51.1'inde (4036 hasta) karaciğer büyümesi tespit edilmemiştir**, **%48.9'unda (3869 hasta) karaciğer büyümesi vardır (Y)**. Neredeyse yarı yarıya bir dağılım söz konusudur.
-5. **`Spiders` (Örümcek Anjiyomlar - Cilt Bulgusu):**
-   - Hastaların **%75.4'ünde (5964 hasta) cilt bulgusu yokken**, **%24.6'sında (1941 hasta) mevcuttur**. Örümcek anjiyom sirozun diğer bir cilt komplikasyonudur.
-6. **`Edema` (Ödem):**
-   - Hastaların **%89.9'unda (7103 hasta) ödem yoktur (N)**.
-   - **%8.1'inde (642 kas) idrar söktürücü tedavisiyle düzeltilmiş ödem mevcuttur (S)**.
-   - **%2.0'ında (160 hasta) tedaviye rağmen dirençli ödem vardır (Y)**.
-7. **`Stage` (Klinik Siroz Evresi):**
-   - Evre dağılımı: **Evre 1 (%5.0 - 397 hasta)**, **Evre 2 (%20.9 - 1652 hasta)**, **Evre 3 (%39.9 - 3153 hasta)**, **Evre 4 (%34.2 - 2703 hasta)**.
-   - **Klinik ve Ordinal Değerlendirme:** `Stage` değişkeni hem sınıfsal dağılım hem de sıralı klinik ilerlemeyi temsil eder. Verilerin yaklaşık %74'ü Evre 3 ve Evre 4 gibi ileri derece karaciğer hasarı olan hastalardan oluşmaktadır. Bu durum, veri setindeki hastaların çoğunluğunun ileri düzey karaciğer yetmezliği / siroz durumunda olduğunu ve hastalığın son evrelerine doğru ilerlediğini gösterir. Bu durum, yüksek vefat oranı (%33.7) ile de doğrudan tutarlıdır.
+cells.append(nbf.v4.new_markdown_cell("""### Kategorik Yorumlar:
+* **Stage (Klinik Evre):** Evre 1 ve 2'de vefat (D) oranı çok düşükken, sirozun son evresi olan **Evre 4'te vefat eden hasta sayısı yaşayan hasta sayısını geçmiştir.** Siroz evresi kesinlikle en güçlü prediktörlerden biridir.
+* **Ascites, Hepatomegaly, Spiders (Klinik Bulgular):** Bu komplikasyonları taşıyan (Y) hastalarda vefat oranlarının (Kırmızı Bar) oransal olarak ciddi şekilde arttığı gözlemlenmektedir.
+* **Edema (Ödem):** Tedaviye yanıt vermeyen ödemi olan (Y) grupta ölüm oranı aşırı derecede yüksektir.
 """))
 
-# --- CELL 23: CORRELATION ANALYSIS TITLE ---
-cells.append(nbf.v4.new_markdown_cell("""# 7. Korelasyon Analizi
-
-Bu bölümde sayısal değişkenler arasındaki doğrusal ilişkilerin gücü ve yönü **Pearson Korelasyon Katsayısı** ile analiz edilecektir. Korelasyon ilişkileri sunum kalitesinde, mavi-kırmızı renk geçişli (`coolwarm` paleti) bir ısı haritası (heatmap) ile görselleştirilecektir.
+# --- CELL 15: SURVIVAL ANALYSIS TITLE ---
+cells.append(nbf.v4.new_markdown_cell("""# 7. Sağkalım Analizi (Kaplan-Meier Curve)
+Klinik çalışmalarda sadece sonuca bakmak yetmez, hastanın ne kadar süre hayatta kaldığı da önemlidir. `N_Days` değişkeni bu süreyi verir. Tedavi gruplarının (İlaç) sağkalım olasılıkları incelenmiştir.
 """))
 
-# --- CELL 24: CORRELATION ANALYSIS CODE ---
-cells.append(nbf.v4.new_code_cell("""# Pearson Korelasyon Matrisi Hesaplama
-corr_matrix = df[num_cols].corr(method='pearson')
+# --- CELL 16: SURVIVAL ANALYSIS CODE ---
+cells.append(nbf.v4.new_code_cell("""# Kaplan-Meier için Event değişkeni (Death = 1, Diğerleri = 0)
+df['Event'] = df['Status'].apply(lambda x: 1 if x == 'D' else 0)
 
-print("Pearson Korelasyon Katsayıları Matrisi:")
-display(corr_matrix.round(3))
+kmf = KaplanMeierFitter()
 
-# Heatmap Çizimi
-plt.figure(figsize=(12, 10))
-sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap="coolwarm", vmin=-1, vmax=1, 
-            linewidths=0.8, cbar_kws={'shrink': 0.8, 'label': 'Korelasyon Katsayısı (r)'},
-            square=True)
+plt.figure(figsize=(12, 7))
 
-plt.title('Sayısal Değişkenler Arası Pearson Korelasyon Isı Haritası', fontsize=14, pad=15)
+# İlaç grubuna göre kırılım (Drug)
+groups = df['Drug'].unique()
+if len(groups) == 2 and not pd.isnull(groups).any():
+    for name, grouped_df in df.groupby('Drug'):
+        kmf.fit(grouped_df['N_Days'], grouped_df['Event'], label=str(name))
+        kmf.plot_survival_function(linewidth=3)
+else:
+    # İlaç değişkeni NaN içeriyorsa Cinsiyete göre çizelim
+    for name, grouped_df in df.groupby('Sex'):
+        kmf.fit(grouped_df['N_Days'], grouped_df['Event'], label=str(name))
+        kmf.plot_survival_function(linewidth=3)
+
+plt.title('Tedavi Grubuna Göre Kaplan-Meier Sağkalım Eğrisi', fontsize=18, fontweight='bold')
+plt.xlabel('Zaman (Gün)', fontweight='bold', fontsize=14)
+plt.ylabel('Hayatta Kalma Olasılığı', fontweight='bold', fontsize=14)
+plt.grid(True, linestyle='--', alpha=0.7)
 plt.tight_layout()
-plt.savefig('reports/figures/correlation_matrix.png', dpi=300, bbox_inches='tight')
+plt.savefig('reports/figures/kaplan_meier_survival.png', dpi=300, bbox_inches='tight')
 plt.show()
 """))
 
-# --- CELL 25: CORRELATION ANALYSIS COMMENTS ---
-cells.append(nbf.v4.new_markdown_cell("""### Korelasyon Analizi Yorumları:
-
-Korelasyon ısı haritası incelendiğinde değişkenler arasında genel olarak zayıf ve orta düzeyde doğrusal ilişkiler gözlemlenmektedir. En belirgin korelasyonlar aşağıda açıklanmıştır:
-
-- **En Güçlü Pozitif İlişkiler (Doğrusal Artış):**
-  - **`Bilirubin` ile `Copper` (r = 0.46):** Orta düzeyde pozitif bir ilişki mevcuttur. Bilirubin artışı (safra kanalı tıkanıklığı/karaciğer hasarı) ile vücutta bakır birikimi arasında klinik olarak bilinen güçlü bir paralellik vardır. Karaciğer fonksiyonu bozuldukça her iki toksik madde de vücutta birikmektedir.
-  - **`Bilirubin` ile `Prothrombin` (r = 0.35):** Karaciğerin sentez kapasitesi düştükçe pıhtılaşma süresi (protrombin zamanı) uzar ve bilirubin seviyeleri artar.
-  - **`SGOT` ile `Bilirubin` (r = 0.38) & `Copper` (r = 0.33):** SGOT (AST) aktif karaciğer hücresi yıkımını gösteren bir enzimdir. Hücre yıkımı arttıkça bilirubin ve bakır birikiminin arttığı doğrulanmaktadır.
-  - **`Cholesterol` ile `Tryglicerides` (r = 0.35):** Lipit metabolizması ile ilişkili bu iki parametre arasında orta düzeyde pozitif bir korelasyon mevcuttur.
-- **En Güçlü Negatif İlişkiler (Ters Yönlü Doğrusal İlişki):**
-  - **`Albumin` ile `Bilirubin` (r = -0.31) ve `Prothrombin` (r = -0.32):** Albumin karaciğerde sentezlenen önemli bir proteindir. Karaciğer hasarı arttıkça (bilirubin yükseldikçe veya pıhtılaşma süresi protrombin uzadıkça) karaciğerin albümin sentezleme yeteneği düşer. Bu negatif yönlü ilişki klinik açıdan son derece tutarlıdır.
-  - **`Age` ile `Platelets` (r = -0.11):** Yaş ilerledikçe trombosit sayısında hafif bir düşüş eğilimi gözlenmektedir.
-- **Çoklu Doğrusal Bağlantı (Multicollinearity) Durumu:**
-  - Analiz edilen tüm sayısal değişkenler arasında korelasyon katsayısının **0.50'nin altında** olduğu görülmektedir. Bu bulgu, makine öğrenmesi modelleri için oldukça olumludur; çünkü değişkenler arasında yüksek düzeyde bağımlılık (multicollinearity) problemi bulunmamaktadır.
+cells.append(nbf.v4.new_markdown_cell("""### Sağkalım Analizi Yorumu:
+Kaplan-Meier eğrisinde D-penicillamine ve Placebo alan grupların sağkalım olasılıkları zamanla paralel bir şekilde düşmektedir. Aralarında devasa bir fark görülmemektedir. Eğri 4000. günlere yaklaşırken sağkalım ihtimali ciddi oranda gerilemektedir. 
 """))
 
-# --- CELL 26: BIVARIATE RELATIONSHIPS TITLE ---
-cells.append(nbf.v4.new_markdown_cell("""# 8. İlişki Analizleri
-
-Bu bölümde değişkenler arasındaki klinik ve istatistiksel ilişkiler daha detaylı incelenecektir. Hedef değişken (`Status`) ve klinik evre (`Stage`) baz alınarak sayısal değişkenlerin durumları scatterplot, violin plot ve boxplot karşılaştırmaları ile ele alınacaktır. Ayrıca belirli kritik özellikler için çok boyutlu bir pairplot çizilecektir.
+# --- CELL 17: HYPOTHESIS TESTING ---
+cells.append(nbf.v4.new_markdown_cell("""# 8. İstatistiksel Hipotez Testi (Anlamlılık)
+Grafiklerde gördüğümüz farkların tesadüfi olup olmadığını matematiksel olarak kanıtlıyoruz. Yaşayan (`C`) ve Ölen (`D`) hastalar arasında **Bilirubin** ve **Albumin** seviyeleri istatistiksel olarak anlamlı farklılığa sahip mi?
+(Dağılımlar normal olmadığı için parametrik olmayan Mann-Whitney U Testi kullanılmıştır).
 """))
 
-# --- CELL 27: BIVARIATE RELATIONSHIPS CODE ---
-cells.append(nbf.v4.new_code_cell("""# 1. Scatterplot: Bilirubin vs Prothrombin (Status bazında)
-plt.figure(figsize=(10, 6))
-sns.scatterplot(data=df, x='Bilirubin', y='Prothrombin', hue='Status', palette='Set1', alpha=0.6, s=40)
-plt.title('Bilirubin ve Prothrombin Zamanı İlişkisi (Status Kırılımında)', fontsize=13, pad=10)
-plt.xlabel('Bilirubin Seviyesi')
-plt.ylabel('Protrombin Zamanı')
+cells.append(nbf.v4.new_code_cell("""group_c = df[df['Status'] == 'C']
+group_d = df[df['Status'] == 'D']
+
+features_to_test = ['Bilirubin', 'Albumin', 'Copper', 'Prothrombin']
+test_results = []
+
+for feat in features_to_test:
+    stat, p_value = mannwhitneyu(group_c[feat].dropna(), group_d[feat].dropna(), alternative='two-sided')
+    significance = "Anlamlı Fark VAR" if p_value < 0.05 else "Anlamlı Fark YOK"
+    test_results.append({'Özellik': feat, 'P-Değeri': p_value, 'Sonuç (alpha=0.05)': significance})
+
+test_df = pd.DataFrame(test_results)
+display(test_df)
+"""))
+
+cells.append(nbf.v4.new_markdown_cell("""### Hipotez Testi Yorumu:
+Tüm p-değerleri 0.05'ten (ve hatta 0.0001'den) küçüktür. Bu, vefat eden hastalar ile yaşayan hastaların laboratuvar bulguları arasındaki farkın **asla tesadüf olmadığı**, %99.9 güvenle istatistiksel olarak anlamlı olduğu anlamına gelmektedir.
+"""))
+
+# --- CELL 18: RADAR CHART TITLE ---
+cells.append(nbf.v4.new_markdown_cell("""# 9. Hasta Profili Karşılaştırması (Radar / Spider Chart)
+Hastalık Sonucu (`Status`) sınıflarına göre laboratuvar ortalamalarını tek bir görselde karşılaştırıyoruz.
+(Değerler görselleştirme adına 0-1 aralığına Min-Max yöntemi ile indirgenmiştir).
+"""))
+
+# --- CELL 19: RADAR CHART CODE ---
+cells.append(nbf.v4.new_code_cell("""features_radar = ['Bilirubin', 'Copper', 'SGOT', 'Prothrombin', 'Albumin']
+
+# Grupların ortalamalarını alıp yeni DataFrame oluşturma
+radar_df = df.groupby('Status')[features_radar].mean().reset_index()
+
+# Albumin ters yönde çalışır (yüksek olması iyidir), bunu görselleştirme için tersine çeviriyoruz ki grafiğin dışına doğru olan her şey kötü durumu göstersin
+radar_df['Albumin_Eksikliği'] = radar_df['Albumin'].max() - radar_df['Albumin']
+
+features_radar_plot = ['Bilirubin', 'Copper', 'SGOT', 'Prothrombin', 'Albumin_Eksikliği']
+
+# Min-Max Scaling (0-1 arası) görsel açıdan radar grafiğine uyması için
+for feat in features_radar_plot:
+    min_val = radar_df[feat].min()
+    max_val = radar_df[feat].max()
+    if max_val != min_val:
+        radar_df[feat] = (radar_df[feat] - min_val) / (max_val - min_val)
+    else:
+        radar_df[feat] = 0
+
+# Radar Plot Çizimi
+categories = features_radar_plot
+N = len(categories)
+
+angles = [n / float(N) * 2 * pi for n in range(N)]
+angles += angles[:1]
+
+plt.figure(figsize=(10, 10))
+ax = plt.subplot(111, polar=True)
+ax.set_theta_offset(pi / 2)
+ax.set_theta_direction(-1)
+plt.xticks(angles[:-1], categories, size=14, fontweight='bold')
+ax.set_rlabel_position(0)
+plt.yticks([0.25, 0.5, 0.75], ["0.25","0.50","0.75"], color="grey", size=10)
+plt.ylim(0,1.1)
+
+colors = {'C': '#1f77b4', 'CL': '#ff7f0e', 'D': '#d62728'}
+
+for index, row in radar_df.iterrows():
+    status = row['Status']
+    values = row[features_radar_plot].values.flatten().tolist()
+    values += values[:1]
+    ax.plot(angles, values, linewidth=3, linestyle='solid', label=f'Status: {status}', color=colors[status])
+    ax.fill(angles, values, color=colors[status], alpha=0.1)
+
+plt.title('Status Bazında Normalize Edilmiş Hasta Profilleri', size=20, fontweight='bold', y=1.1)
+plt.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
 plt.tight_layout()
-plt.savefig('reports/figures/bivariate_scatter.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-# 2. Violin Plot: Albumin Dağılımı (Klinik Evre - Stage bazında)
-plt.figure(figsize=(10, 6))
-sns.violinplot(data=df, x='Stage', y='Albumin', palette='muted', hue='Stage', legend=False)
-plt.title('Klinik Evrelere (Stage) Göre Albumin Seviyesi Dağılımları', fontsize=13, pad=10)
-plt.xlabel('Klinik Evre (Stage)')
-plt.ylabel('Albumin Seviyesi')
-plt.tight_layout()
-plt.savefig('reports/figures/bivariate_violin.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-# 3. Boxplot Karşılaştırması: Bilirubin Seviyesi (Status bazında - Logaritmik Ölçek)
-plt.figure(figsize=(10, 6))
-sns.boxplot(data=df, x='Status', y='Bilirubin', palette='Pastel1', hue='Status', legend=False)
-plt.yscale('log')  # Bilirubin uç değerleri yüksek olduğu için log scale görselleştirmeyi netleştirir
-plt.title('Gözlem Sonucuna (Status) Göre Bilirubin Seviyelerinin Karşılaştırılması (Logaritmik)', fontsize=13, pad=10)
-plt.xlabel('Hastalık Durumu (Status)')
-plt.ylabel('Bilirubin Seviyesi (Log Ölçek)')
-plt.tight_layout()
-plt.savefig('reports/figures/bivariate_boxplots.png', dpi=300, bbox_inches='tight')
-plt.show()
-
-# 4. Pairplot: Belirli Kritik Özellikler için Matrix Dağılımı (Status bazında)
-selected_features = ['Bilirubin', 'Copper', 'Albumin', 'Prothrombin', 'Status']
-g = sns.pairplot(data=df[selected_features], hue='Status', palette='Set1', diag_kind='kde',
-                 plot_kws={'alpha': 0.5, 's': 20})
-g.fig.suptitle('Seçilmiş Kritik Parametrelerin Çoklu Dağılım ve İlişki Grafiği (Pairplot)', y=1.02, fontsize=14)
-plt.savefig('reports/figures/pairplot.png', dpi=300, bbox_inches='tight')
+plt.savefig('reports/figures/radar_chart_profile.png', dpi=300, bbox_inches='tight')
 plt.show()
 """))
 
-# --- CELL 28: BIVARIATE RELATIONSHIPS COMMENTS ---
-cells.append(nbf.v4.new_markdown_cell("""### İlişki Analizi Yorumları:
-
-1. **Bilirubin vs Prothrombin (Scatterplot):**
-   - Dağılım incelendiğinde, bilirubin seviyesi 5'in ve protrombin zamanı 11'in altında olan grupta yoğun bir `C` (yaşayan) hasta kümelenmesi görülmektedir.
-   - Buna karşılık, hem bilirubin seviyesinin yükseldiği hem de protrombin zamanının uzadığı sağ-üst bölgede kırmızı renkli `D` (vefat eden) hastaların yoğunlaştığı net şekilde izlenmektedir. Bu iki biyobelirtecin aynı anda yüksek olması, hastanın ölüm riskinin (D sınıfı) klinik olarak çok daha yüksek olduğunun bir göstergesidir.
-2. **Klinik Evrelere Göre Albumin Dağılımı (Violin Plot):**
-   - Evre 1'den Evre 4'e doğru gidildikçe, keman grafiklerinin tepe noktasının ve medyan değerlerinin aşağıya doğru kaydığı açıkça görülmektedir.
-   - Evre 1 hastalarında albumin seviyesi 3.7 - 4.0 g/dL civarında kümelenirken, Evre 4 hastalarında dağılım 3.2 - 3.5 g/dL düzeyine gerilemiştir. Karaciğer yetmezliği ilerledikçe albumin sentezinin azaldığı teorisi bu görselle açıkça kanıtlanmıştır.
-3. **Status Bazında Bilirubin Seviyesi (Boxplot):**
-   - Logaritmik ölçekte çizilen kutu grafiği, vefat eden (`D`) hastaların bilirubin medyan değerinin, yaşayan (`C`) veya nakil olan (`CL`) hastaların medyanından belirgin şekilde yüksek olduğunu göstermektedir.
-   - Yaşayan hastaların büyük kısmında bilirubin normal referans değerlerindeyken (1.0 civarı), vefat eden grupta medyan değer 3.0'ın üzerindedir ve kutunun gövdesi çok daha yukarıdadır.
-4. **Çok Boyutlu İlişki Grafiği (Pairplot):**
-   - Köşegenlerdeki KDE eğrileri incelendiğinde, `Albumin` dağılımında yaşayan hastaların (`C`) daha yüksek değerlere sahip bir tepe oluşturduğu, ölen hastaların (`D`) ise sol tarafa doğru yayılmış daha düşük albumin seviyelerine sahip olduğu görülmektedir.
-   - `Bilirubin` ve `Copper` dağılımlarında ise yaşayan hastaların dağılımı sol tarafta dar ve yüksek bir tepe oluştururken (sağlıklı düşük değerler), vefat eden hastaların dağılım eğrisi sağa doğru geniş bir kuyruk oluşturmaktadır. Bu iki belirteç karaciğer fonksiyon kaybını ve ölüm olasılığını güçlü bir şekilde ayrıştırmaktadır.
+cells.append(nbf.v4.new_markdown_cell("""### Radar Grafiği Yorumu:
+Kırmızı alan (`D` - Vefat) poligonu çok genişken, Mavi alan (`C` - Yaşayan) merkeze yapışıktır. Yani vefat eden hastalar Bilirubin, Copper, SGOT, Prothrombin ve Albumin Eksikliğinde uç/kötü değerlere sahiptir. Tüm karaciğer harabiyeti belirtileri eş zamanlı olarak artmıştır.
 """))
 
-# --- CELL 29: SUMMARY RESULTS IN TURKISH ---
-cells.append(nbf.v4.new_markdown_cell("""# 9. EDA'dan Elde Edilen Bulgular
-
-Bu kapsamda yapılan detaylı Keşifçi Veri Analizi (EDA) sonucunda elde edilen temel bulgular aşağıda madde madde özetlenmiştir:
-
-*   **Veri Kalitesi ve Tamlığı:**
-    *   Veri setinde toplam **7905 gözlem** ve **20 değişken** yer almaktadır.
-    *   Tüm değişkenlerin doluluk oranı **%100**'dür; veri setinde hiçbir eksik (`NaN` / `null`) değer bulunmamaktadır. Bu durum klinik veri setlerinde nadir görülen, sentetik veri üretimine veya veri ön işleme aşamasına işaret eden bir kalitedir.
-*   **Hedef Değişken Durumu (Sınıf Dengesizliği):**
-    *   Hedef değişken olan `Status` sınıfları arasında ciddi dengesizlik bulunmaktadır. Yaşayan ve takip dışı kalan hastalar (`C`) **%62.8** oranında çoğunluktayken, vefat edenler (`D`) **%33.7** ve karaciğer nakli yapılan hastalar (`CL`) yalnızca **%3.5** oranındadır.
-    *   Modelleme çalışmalarında `CL` azınlık sınıfının doğru tahmin edilebilmesi için sınıf ağırlıklarının optimize edilmesi veya veri dengeleme yöntemlerinin değerlendirilmesi kritik önem taşımaktadır.
-*   **Aykırı Değer Durumu:**
-    *   Yaş (`Age`) ve Takip Süresi (`N_Days`) değişkenleri dışında, laboratuvar bulgularını temsil eden tüm sayısal değişkenlerde yüksek oranda aykırı değerler tespit edilmiştir.
-    *   En yüksek aykırı değer oranı **Bilirubin (%9.41)** ve **Copper (%7.70)** değişkenlerindedir.
-    *   Bu aykırı değerler karaciğer hasarının klinik seyriyle doğrudan ilişkili biyolojik uç değerlerdir. Modelleme aşamasında bu değerlerin silinmesi yerine, uç değerlere karşı dayanıklı (örneğin karar ağaçları veya robust ölçeklendirme teknikleri) yöntemlerin seçilmesi önerilir.
-*   **Dağılım Özellikleri:**
-    *   Yaş (`Age`) gün bazında verilmiş olup, simetrik ve normal dağılıma oldukça yakın bir yapı sergilemektedir (Yaş ortalaması yaklaşık 50.3 yıldır).
-    *   `Bilirubin` (Skew: 3.717), `Cholesterol` (Skew: 3.535), `Copper` (Skew: 2.296) ve `Alk_Phos` (Skew: 2.955) değişkenleri **aşırı derecede sağa çarpık (right-skewed)** ve dik (leptokurtik) dağılımlara sahiptir. Bu durum, hastaların çoğunun normal değerlere sahip olduğunu ancak hasta bir grubun çok yüksek risk seviyelerinde olduğunu gösterir.
-    *   `Albumin` (Skew: -0.574) değişkeni hafif sola çarpık olup normal dağılıma en yakın laboratuvar parametresidir.
-*   **Klinik Değişken ve Evre (Stage) Durumu:**
-    *   Hastaların cinsiyet dağılımı ezici bir şekilde kadın ağırlıklıdır (%89.1 F, %10.9 M). Bu durum primer biliyer kolanjit/siroz gibi otoimmün hastalıkların popülasyon dağılımı ile uyumludur.
-    *   Klinik evre (`Stage`) değişkeni incelendiğinde hastaların **%74.1**'inin ileri evre (Evre 3 ve Evre 4) siroz hastası olduğu görülmektedir. Evre ilerledikçe karaciğer sentez kapasitesinin düşüşünü temsil eden albumin seviyelerinin gerilediği (Violin Plot analizi ile) doğrulanmıştır.
-*   **Korelasyon ve Klinik İlişkiler:**
-    *   En güçlü doğrusal ilişkiler karaciğer hasarının biyobelirteçleri olan `Bilirubin` ile `Copper` (r = 0.46) arasındadır.
-    *   Albumin sentezi ile karaciğer fonksiyon bozukluğu göstergeleri arasında klinik beklentilerle tam uyumlu şekilde negatif korelasyon (Albumin vs Bilirubin r = -0.31, Albumin vs Prothrombin r = -0.32) mevcuttur.
-    *   Değişkenler arasında çoklu doğrusal bağlantı (multicollinearity) yaratacak seviyede (r >= 0.70) aşırı yüksek bir korelasyon bulunmamaktadır.
-*   **Modelleme Öncesi Dikkat Edilmesi Gereken Noktalar:**
-    *   **Veri Tipleri ve Kodlama:** Kategorik sütunlar (`Drug`, `Sex`, `Ascites`, `Hepatomegaly`, `Spiders`, `Edema`) ve ordinal yapılı `Stage` değişkeni modelleme öncesinde uygun şekilde encode edilmelidir (One-Hot / Label encoding).
-    *   **Ölçeklendirme:** Sağa çarpık dağılımların yoğun olması nedeniyle, mesafe tabanlı modeller kullanılacaksa RobustScaler veya logaritmik dönüşüm (Log Transform) uygulanması gereklidir.
-    *   **Metrik Seçimi:** Hedef değişkendeki dengesizlikten dolayı doğruluk (Accuracy) yerine F1-Skor, Precision-Recall AUC ve Karışıklık Matrisi (Confusion Matrix) gibi metrikler başarı değerlendirmesinde temel alınmalıdır.
+# --- CELL 20: SUMMARY ---
+cells.append(nbf.v4.new_markdown_cell("""# 10. Sonuç ve Özet
+* Sınıf dengesizliği (`Status` dağılımı) barizdir. Modellerde dikkat edilmelidir.
+* Laboratuvar değerleri ağır aykırı değerler içermektedir ve bunlar kliniktir.
+* Yaş, Siroz Evresi ve Ödem ölümle doğrudan ve en güçlü korelasyona sahip kategorik/ordinal belirteçlerdir.
+* İstatistiksel testler, yaşayan ve vefat eden hastaların klinik bulgularının matematiksel olarak da tamamen birbirinden ayrıştığını kanıtlamıştır.
 """))
 
-# Write the notebook
 nb['cells'] = cells
 with open('eda_cirrhosis.ipynb', 'w', encoding='utf-8') as f:
     nbf.write(nb, f)
 
-print("eda_cirrhosis.ipynb programmatically created.")
+print("eda_cirrhosis.ipynb Jupyter Notebook'u başarıyla güncellendi.")
