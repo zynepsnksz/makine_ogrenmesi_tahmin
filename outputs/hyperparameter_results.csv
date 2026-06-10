@@ -1,0 +1,2 @@
+Best Parameters,Best CV Macro F1,Test Accuracy,Test Macro F1,Test Precision Macro,Test Recall Macro,Test Balanced Accuracy
+"{'subsample_freq': 1, 'subsample': 1.0, 'reg_lambda': 0.1, 'reg_alpha': 5.0, 'num_leaves': 127, 'n_estimators': 500, 'min_child_samples': 30, 'max_depth': 5, 'learning_rate': 0.05, 'colsample_bytree': 0.9}",0.6668991261946076,0.8165717900063251,0.648753080516001,0.6583420440074496,0.6429459568506065,0.6429459568506065
